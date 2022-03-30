@@ -1,0 +1,14 @@
+version: '3'
+services:
+  nginx:
+    image: nginx:1.15-alpine
+    volumes:
+      - ./dev/:/etc/nginx/conf.d
+      - ./inc:/etc/nginx/inc
+    ports:
+      - 8080:80
+    restart: unless-stopped
+      
+networks:
+  default:
+    name: trufi-server

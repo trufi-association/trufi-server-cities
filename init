@@ -1,0 +1,108 @@
+#!/bin/bash
+oldbrand="Trufi Server"
+oldbrand_url="https://github.com/trufi-association/trufi-server"
+oldbrand_dir="./trufi-server"
+newbrand="Multi Purpose Trufi Server"
+filesDir="files"
+
+if [ -z `which git` ]; then
+	echo -e "\033[1;31mError: 'git' is missing on this system. Please install it as it is a requirement!\033[0;m">$2
+	exit 1
+fi
+
+greenecho() {
+	echo -e "\033[1;36m$1\033[0;m"
+}
+
+orangeecho() {
+	echo -e "\033[1;33m$1\033[0;m"
+}
+
+blueecho() {
+	echo -e "\033[1;34m$1\033[0;m"
+}
+
+checkDecision() {
+	if ! [ "$1" = "$2" ]; then
+		greenecho "aborting transformation from '$oldbrand' to '$newbrand' ..."
+		echo -e "\033[1;34mYou are NOW SAVE sir! If you change your mind then execute me again!\033[0;m"
+		exit 0
+	fi
+
+}
+
+
+greenecho "###################################################"
+greenecho "    $oldbrand --> $newbrand    "
+greenecho "###################################################"
+
+echo "Transformer, transform '$oldbrand' to '$newbrand'!"
+
+
+blueecho "This script will download a copy of '$oldbrand' and will convert it to '$newbrand'"
+blueecho "---------------------------------------------"
+blueecho " - $oldbrand has the limitation of allowing you to serve just one region e.g. a city, or two cities and everything between them."
+blueecho "   or another saying: $oldbrand has the limitation of allowing you just to serve the contents of **one** bounding box."
+blueecho " - $newbrand **does not** have this limitation and supports both approaches!"
+blueecho "   It supports serving data inside **one** bounding box e.g. a city, or two cities and everything between them"
+blueecho "   and it supports serving data from more bounding boxes e.g. a city A and a city B which are not connected to each other or another saying 'city A and city B without anything in between'"
+blueecho "--------------------------------------------"
+blueecho "THERE IS NO BACKWARD COMPACTIBILITY! At the moment we don't provide another script to turn '$newbrand' back to '$oldbrand'. Even such solution would not use this copy but would clone the repo as new in the parent directory of this and will do the initial setup of each region there"
+blueecho "--------------------------------------------"
+blueecho "DEVELOPER ATTENTION!"
+blueecho "This script will download a copy of '$oldbrand' (a git repository) and will convert it to '$newbrand'."
+blueecho "- Do not make changes in the copy and do not commit them. We will reject PR's containing them. If you want to develop around the 'copy' then please fork https://github.com/trufi-association/trufi-server and work on it."
+blueecho "- If you want to make changes to this init script or to the contents in the directory 'files' then you are free to do so on your own fork! We encourage you to make PR's."
+blueecho " - If you make changes to any or both projects we encourage you to upstream them by opening a PR. Your change can be useful and can improve our projects :)"
+blueecho "--------------------------------------------"
+blueecho "--------------------------------------------"
+echo 
+maxcount=3
+for i in {1..2}; do
+	echo -ne "showing prompt in $((maxcount - i)) ...\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
+	sleep 1
+done
+echo "Do you want to process? (y|n): "
+read decision
+checkDecision $decision "y"
+
+echo 
+echo "Did you read also the note about 'THERE IS NO BACKWARD COMPACTIBILITY!'? (yes|n): "
+read decisionSecond
+checkDecision $decisionSecond "yes"
+
+echo -ne "Okay, time to grab a coffee\033[0K\r"
+sleep 1
+echo -ne "and to enjoy the show!\033[0K\r"
+sleep 1
+maxcount=4
+for i in {1..3}; do
+	echo -ne "Show begins in $((maxcount - i)) (still time hit CTRL+C to stop it)\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
+	sleep 1
+done
+
+orangeecho "Cloning '$oldbrand_url' ..."
+git clone $oldbrand_url
+if ! [ -d "$oldbrand_dir" ]; then
+	echo "Error: Clone of '$oldbrand_url' failed! Do I have internet access or the necessary write permission to the local filesystem?">&2
+	exit 1
+fi
+
+# prevents from accidentally committing and uploading changes made by this script
+orangeecho "prevent users from accidentally uploading their changes in '$oldbrand' to git ..."
+rm -R $oldbrand_dir/.git --force
+
+orangeecho "copying files from '$filesDir' into the '$oldbrand_dir' directory ..."
+for i in `dir $filesDir`; do
+	initscript=`echo "$i" | grep "__init__"`
+	pycache=`echo "$i" | grep "__pycache__"`
+	lib=`echo "$i" | grep -i "lib"`
+	if [ -z "$initscript" ] && [ -z "$pycache" ] && [ -z "$lib" ]; then
+		newname=${i//".py"/""} # Using bash for editing complex YAML structures is not reliable enough. We use python3 scripts from now on
+		orangeecho "  copying file '$i' as '$newname' to the '$oldbrand_dir' directory ..."
+		cp -r "$filesDir/$i" "$oldbrand_dir/$newname"
+	fi
+done
+
+orangeecho "copying library ..."
+cp -r "$filesDir/lib" "$oldbrand_dir/lib"
