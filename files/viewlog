@@ -1,0 +1,36 @@
+#!/bin/bash
+# makes sense for production only
+
+source ./lib/colorful
+
+blueecho "performing some checks & normalizations ..."
+source ./lib/validation
+
+container_name="$1_$city"
+moreargs=false
+projectname=`basename "$PWD"`
+
+if [ "$env" = "production" ]; then
+    echo 'Error: the production does not appear to be set up but this script is only useful for production use' >&2
+    exit 1
+fi
+
+if ! [ -n "$1" ]; then
+    echo 'Error: extension name as param is needed (e.g. "tileserver")' >&2
+    exit 1
+fi
+
+if ! [ -z "$2" ]; then
+	moreargs="true"
+fi
+unset $1
+
+args=()
+if [ $moreargs = "true" ]; then
+	args="$@"
+else
+	args+=( --since today )
+fi
+
+orangeecho "Executing 'sudo journalctl CONTAINER_NAME=\"${projectname}_${container_name}_1\" -f ${args[@]}'"
+sudo journalctl CONTAINER_NAME="${projectname}_${container_name}_1" -f "${args[@]}"
