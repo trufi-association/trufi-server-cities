@@ -27,7 +27,7 @@ The config files are located inside `./config` folder, you can create a new one 
 | domain     | cbba.trufi.app     | The domain name of the city. If you use the mode `virtual domains` then be creative as this variable will then not be of use but needs to be available |
 | otpversion | 1.5.0              | Put there `1.5.0` for regions running informal transport otherwise `2.0.0` |
 
-Create a new one based on the already existing config files to get an idea of their internal structure. Do that for each city you want to host backend services for.
+Create a new one based on the already existing config files to get an idea of their internal structure. Do that for each city you want to host backend services for. You may want to remove the other configuration city files which are meant to provide examples.
 
 ## Extensions
 
@@ -43,6 +43,22 @@ You can find all in the [extensions](./extensions) folder. Each extension has a 
   Use this service to serve the data needed to display the background map shown in the app. This does not include the styling (e.g. a highways are yellow lines and the water blue). The styling is done on the client side.  This allows you/us to make modifications to the stylings without the need to rerender all pngs of the background map for your city. It generates the png background map tiles on the fly for clients which do not support dynamic map tiles. *This use of the service is optional and cause much CPU usage when it needs to generate background maps on the fly (this is a wrong usage of this service). Our app currently does not support client side rendering of background maps so we only recommend using this service on a server with much CPU resources.*
 
 Concerning background map tiles: Decide wethever you want to use the extension *static_maps* or *tileserver*. Using both in **one** city is useless.
+
+## Intraweb
+
+In a [production environment](#production_environmemt) this backend wires up a complete Intraweb for sysadmins to debug/check (misbehaving) extensions related to a city. A sysadmin can enjoy the beauty of the webportals of some extensions without the need to expose them to the public (our provided nginx configurations for each extension limit access extremely). The Intraweb is accessible at  `localhost:8090` of your server. So do the well known [SSH port forwarding](https://phoenixnap.com/kb/ssh-port-forwarding) magic to access it through your webbrowser on your own machine.
+
+```sh
+ssh <username on server>@<server hostname or ip> -L 8090:127.0.0.1:8090
+```
+
+e.g.
+
+```sh
+ssh foo@example.com -L 8090:127.0.0.1:8090
+```
+
+And we can type in a url following the scheme `http://<name of extension>_<name of city>.localhost:8090/`  e.g. to reach the extension `tileserver` of city `Germany-Hamburg` type `http://tileserver_Germany-Hamburg.localhost:8090/`
 
 ## Setup & Maintenance
 
