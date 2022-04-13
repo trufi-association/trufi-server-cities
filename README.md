@@ -58,9 +58,9 @@ cp -a ./trufi-server-resources/data/<Country-City>/* ./trufi-server/extensions -
 
 **TO DO:** Introduce `autosetup` to ease setting up a new city or update an existing one (script needs to be developed still)
 
-### Development city
+### Development environment
 
-Run `init.dev` to initiate development mode
+Run `init.dev` to initiate development mode. This affects all cities.
 
 In a development city you don’t need `journald` which is a logging system on Linux. This is exspecially the case if you’re using Windows or Mac because such an entry makes the docker-composes unsuable on these operating systems.
 
@@ -80,9 +80,9 @@ like
 #        tag: "{{.Name}}"
 ```
 
-### Production city
+### Production environment
 
-We hide all (optional) services behind a nginx proxy which also handles the encryption for them. To make encrypted connections to that nginx proxy possible we need to issue a HTTP certificate. Luckily there is *Let’s Encrypt* issuing them to anyone without the need to pay. Initialization is to be done using `init.prod` 
+We hide all (optional) services behind a nginx proxy which also handles the encryption for them. To make encrypted connections to that nginx proxy possible we need to issue a HTTP certificate. Luckily there is *Let’s Encrypt* issuing them to anyone without the need to pay. Initialization is to be done using `init.prod` and affects all cities.
 
 ### Commands
 
