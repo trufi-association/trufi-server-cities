@@ -1,0 +1,116 @@
+#!/bin/bash
+
+source ./lib/colorful
+
+usage() {
+	blueecho "USAGE 1:"
+	blueecho "./remove_extension <name of env file> <name of extension>"
+	blueecho "./remove_extension Bolivia-Cochabamba otp"
+	blueecho "USAGE 2 (works only when \$enfile has been set e.g. by 'export $enfile=[...]' or by invoking '. ./workas'):"
+	blueecho "./remove_extension <name of extension>"
+	blueecho "./remove_extension otp"
+}
+
+envname=""
+extname=""
+templatenginxconf="./nginx/app.dev.conf"
+
+MODE_VIRTUALDOMAINS="virtual domains"
+MODE_VIRTUALDOMAINS_INDICATOR="./data/nginx/cities/virtualdomains.conf"
+ENV_PROD_INDICATOR="./data/certbot"
+
+blueecho "1. perform some checks & normalizations ..."
+source ./lib/validation
+
+extname="${args[0]}"
+extDir="./extensions/$extname"
+## if $extname is empty or $extDir does not exist
+if [ -z $extname ] || ! [ -d "$extDir" ]; then
+	redecho "  Error: You must specify a valid name of an extension to add to environment '$city'">&2
+	echo "  A list of extensions available:"
+	dir ./extensions
+	exit 1
+fi
+
+if [ $env = "production" ]; then
+	templatenginxconf="./nginx/app.template.conf"
+fi
+
+blueecho "2. add the extension"
+
+#dataDir="$extDir/data_$city"
+#dataDirInactive="$dataDir.inactive"
+ymlFile="$extDir/$city.yml"
+ymlFileInactive="$ymlFile.inactive"
+
+if ! [ -f "$ymlFileInactive" ] && ! [ -f "$ymlFile" ]; then
+	orangeecho "   building & adding extension '$extname' ( directory '$extDir' ) for environment '$city' ..."
+	envsubst < $extDir/docker-compose.yml > "$ymlFile"
+	if ! [ -f "$ymlFile" ]; then
+		redecho "     Creating & adding operation failed! Do I have write access to '$extDir'?">&2
+		exit 1
+	fi
+elif [ -f "$ymlFileInactive" ]; then
+	orangeecho "   adding extension  '$extname' ( directory '$extDir' ) for environment '$city' to environment '$city' ..."
+	mv "$ymlFileInactive" $ymlFile --verbose
+	if ! [ -f "$ymlFile" ]; then
+		redecho "     Adding failed! Do I have write access to '$ymlFileInactive'?">&2
+		exit 1
+	fi
+else
+	greenecho "   extension '$extname' for environment '$city' already added. No need to do it again :)"
+fi
+# else
+# 	if [ -d "$dataDirInactive" ]; then
+# 		orangeecho "   adding extension '$extname' ( directory '$extDir' ) to environment '$city' ..."
+# 		mv "$dataDirInactive" $dataDir --verbose
+# 		if ! [ -d "$dataDir" ]; then
+# 			redecho "     Adding failed! Do I have write access to '$dataDirInactive'?">&2
+# 			exit 1
+# 		fi
+# 	fi
+# else
+# 	if [ -f "$ymlFile" ] || [ -d "$dataDir" ]; then
+# 		greenecho "   extension '$extname' for environment '$city' already added. No need to do it again :)"
+# 	else
+# 		redecho "   Error: Extension '$extname' for environment '$city' couldn't be added. Data directory or user customized compose file missing!"
+# 		echo "   Please add the appropriate data directory '$dataDirInactive' with appropriate data in it or for user customized extensions the appropriate file '$ymlFileInactive' and execute this script again!"
+# 		exit 1
+# 	fi
+# fi
+
+blueecho "3. add nginx configuration"
+dest="./data/nginx/cities/$city.conf"
+if [ -f "$MODE_VIRTUALDOMAINS_INDICATOR" ]; then
+	greenecho "   no need to add nginx configuration in mode '$MODE_VIRTUALDOMAINS' :)"
+else
+	orangeecho "   adding nginx configuration for '$extname' in environment '$city' ..."
+	folder="./data/nginx/cities/$city"
+	if ! [ -d "$folder" ]; then
+		orangeecho "     creating nginx configuration for environment '$city' ..."
+		mkdir "$folder"
+	fi
+	if ! [ -f "$dest" ]; then
+		orangeecho "     completing nginx configuration for environment '$city' ..."
+		nginxcityconfigcontent=`sed "s/# extensions/# real domain include location blocks for city '$city'\ninclude \/etc\/nginx\/conf.d\/$city\/\*.conf\;/" "$templatenginxconf"`
+		
+		if [ $env = "production" ]; then
+			echo "$nginxcityconfigcontent" | sed "s/example.org/$domain/" | sed "s/localhost/$subdomain.localhost/" | sed "s/\<extname_city\>/${extname}_${city}/" > "$dest"
+		else
+			echo "$nginxcityconfigcontent" | sed "s/example.org/$subdomain.localhost/" > "$dest"
+		fi
+		
+		# expand environment variables in file '$dest' and overwrite that file with the expansion
+		#envsubst < "$dest" > "$dest"
+	fi
+	
+	if ! [ -f "$extDir/nginx.conf" ]; then
+		redecho "     Error: there is no nginx configuration for extension '$extname' available!"
+		exit 1
+	fi
+	orangeecho "     copying & altering nginx configuration for extension '$extname' to nginx environment for '$city' (overwriting if already existing) ..."
+	sed -r "s/http\:\/\/(.+?)\//http\:\/\/\\1_$city\//" "$extDir/nginx.conf" > "./data/nginx/cities/$city/$extname.conf"
+	#cp "$extDir/nginx.conf" "./data/nginx/cities/$city/$extname.conf" --verbose
+fi
+
+greenecho "added trufi extension '$extname' to environment '$city'"
