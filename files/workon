@@ -1,0 +1,96 @@
+#!/bin/bash 
+
+redecho() {
+	echo -e "\033[1;31m$1\033[0;m"
+}
+
+orangeecho() {
+	echo -e "\033[1;33m$1\033[0;m"
+}
+
+workon_validvariables=( "city" "otpversion" "domain" "subdomain" )
+
+if [ -z "$enfile" ] && [ -z "$1" ]; then
+	redecho "No environment file to load found. \033[0;mExecute '\033[0;34m. ./workon <name of env file>\033[0;m'"
+	echo "List of available environment files:"
+	dir config
+	return
+fi
+
+
+if [ -z "$defaultPS1" ]; then
+	defaultPS1="$PS1"
+fi
+
+if ! [ -z "$1" ]; then
+	name=${1//".env"/""}
+	export envfile="./config/$name.env"
+fi
+
+errors=""
+if ! [ -z "$envfile" ]; then
+	orangeecho "importing variables from config file '$envfile' (only the whitelisted ones) ..."
+	# get all variables in a line string
+	variables=`cat $envfile | xargs`
+	
+	# replace whitespaces with UNIX new line (needed by grep to get one variable with its content back at a time)
+	variables=`echo "$variables" | tr " " "\n"`
+	
+	for key in ${workon_validvariables[@]}; do
+		singlevar=`echo "$variables" | grep $key`
+		if [ -z "$singlevar" ]; then
+			echo -e "\033[0;33mWARNING:\033[0;m Environment variable '$key' is missing but mandatory. Some things will not work correctly. Repair the envfile at '$envfile' and execute this script again to fix!"
+			errors="yes"
+		else
+			export $singlevar
+		fi
+	done
+fi
+
+mode="real domains"
+env="dev"
+if [ -f "./data/nginx/virtualdomains.conf" ]; then
+	mode="virtual domains"
+fi
+if [ -d "./data/certbot" ]; then
+	env="prod"
+fi
+orangeecho "modifying prompt ..."
+export PS1="\033[0;32m$city@$env\033[0;34m (MODE '$mode')\033[0;m $ "
+orangeecho "adding command aliases ..."
+alias add="./add_extension"
+alias remove="./remove_extension"
+alias server="./server"
+alias viewlog="./viewlog"
+alias restart="./restart_extension"
+alias workon=". ./workon"
+alias close="echo -e \"\033[1;33mChanging prompt back ...\033[0;m\" ;
+export PS1=\"$defaultPS1\";
+echo -e \"\033[1;33mRemoving environment variables previously set by this script ...\033[0;m\" ;
+for key in \${workon_validvariables[@]}; do export -n \$key ; done ;
+export -n \$envfile ;
+echo -e \"\033[1;33mRemoving command aliases ...\033[0;m\" ;
+unalias add ;
+unalias remove ;
+unalias server ;
+unalias viewlog ;
+unalias restart ;
+unalias close ;
+unalias workon ;
+echo '-----------------------------------------------------------------------------------------------------'"
+
+echo 
+echo -e "\033[1;34mCommand list:\033[0;m"
+echo -e "\033[0;34mclose\033[0;m        get the prompt and the environment reverted back."
+echo -e "\033[0;34madd\033[0;m          alias to \033[0;36m./add_extension\033[0;m"
+echo -e "\033[0;34mremove\033[0;m       alias to \033[0;36m./remove_extension\033[0;m"
+echo -e "\033[0;34mserver\033[0;m       alias to \033[0;36m./server\033[0;m"
+echo -e "\033[0;34mviewlog\033[0;m      alias to \033[0;36m./viewlog\033[0;m"
+echo -e "\033[0;34mrestart\033[0;m      alias to \033[0;36m./restart_extension\033[0;m"
+echo -e "\033[0;34mworkon\033[0;m       alias to \033[0;36m. ./workon\033[0;m (this script)"
+echo "other commands work as expected"
+echo
+if [ -n "$errors" ]; then
+	echo -e "\033[0;33mWARNING:\033[0;m Due to some errors some things might disbehave!"
+fi
+echo "-----------------------------------------------------------------------------------------------------"
