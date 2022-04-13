@@ -1,0 +1,25 @@
+#!/bin/bash
+
+projectname=`basename "$PWD"`
+
+source ./lib/colorful
+
+blueecho "performing some checks & normalizations ..."
+source ./lib/validation
+
+extname="${args[0]}"
+extDir="./extensions/$extname"
+## if $extname is empty or $extDir does not exist
+if [ -z $extname ] || ! [ -d "$extDir" ]; then
+	redecho "  Error: You must specify a valid name of an extension to add to city '$city'">&2
+	echo "  A list of extensions available:"
+	dir ./extensions
+	exit 1
+elif [ -f "$extDir/$city.yml.inactive" ]; then
+	redecho "  Extension '$extname' inactive in city '$city'. Inactive extensions cannot be restarted!"
+	exit 1
+fi
+
+cd "$extDir"
+sudo docker-compose -p "$projectname" -f "$city.yml" --env-file ../../$cityfile restart
+cd ../../
