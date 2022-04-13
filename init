@@ -108,6 +108,9 @@ done
 orangeecho "copying library ..."
 cp -r "$filesDir/lib" "$oldbrand_dir/lib"
 
+orangeecho "copying README ..."
+cp "README.md" "$oldbrand_dir/README.md"
+
 python3 modifyComposes.py
 
 greenecho "#################### END ################################"
