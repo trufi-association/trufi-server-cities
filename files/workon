@@ -8,11 +8,11 @@ orangeecho() {
 	echo -e "\033[1;33m$1\033[0;m"
 }
 
-workon_validvariables=( "city" "otpversion" "domain" "subdomain" )
+workon_validvariables=( "city" "otpversion" "domain" )
 
 if [ -z "$enfile" ] && [ -z "$1" ]; then
-	redecho "No environment file to load found. \033[0;mExecute '\033[0;34m. ./workon <name of env file>\033[0;m'"
-	echo "List of available environment files:"
+	redecho "No city file to load found. \033[0;mExecute '\033[0;34m. ./workon <name of env file>\033[0;m'"
+	echo "List of available city files:"
 	dir config
 	return
 fi
@@ -24,14 +24,14 @@ fi
 
 if ! [ -z "$1" ]; then
 	name=${1//".env"/""}
-	export envfile="./config/$name.env"
+	export cityfile="./config/$name.env"
 fi
 
 errors=""
-if ! [ -z "$envfile" ]; then
-	orangeecho "importing variables from config file '$envfile' (only the whitelisted ones) ..."
+if ! [ -z "$cityfile" ]; then
+	orangeecho "importing variables from city configuration '$cityfile' (only the whitelisted ones) ..."
 	# get all variables in a line string
-	variables=`cat $envfile | xargs`
+	variables=`cat $cityfile | xargs`
 	
 	# replace whitespaces with UNIX new line (needed by grep to get one variable with its content back at a time)
 	variables=`echo "$variables" | tr " " "\n"`
@@ -39,7 +39,7 @@ if ! [ -z "$envfile" ]; then
 	for key in ${workon_validvariables[@]}; do
 		singlevar=`echo "$variables" | grep $key`
 		if [ -z "$singlevar" ]; then
-			echo -e "\033[0;33mWARNING:\033[0;m Environment variable '$key' is missing but mandatory. Some things will not work correctly. Repair the envfile at '$envfile' and execute this script again to fix!"
+			echo -e "\033[0;33mWARNING:\033[0;m Environment variable '$key' is missing but mandatory. Some things will not work correctly. Repair the cityfile at '$cityfile' and execute this script again to fix!"
 			errors="yes"
 		else
 			export $singlevar
@@ -52,7 +52,7 @@ env="dev"
 if [ -f "./data/nginx/virtualdomains.conf" ]; then
 	mode="virtual domains"
 fi
-if [ -d "./data/certbot" ]; then
+if [ -d "./data/.production" ]; then
 	env="prod"
 fi
 orangeecho "modifying prompt ..."
@@ -68,7 +68,7 @@ alias close="echo -e \"\033[1;33mChanging prompt back ...\033[0;m\" ;
 export PS1=\"$defaultPS1\";
 echo -e \"\033[1;33mRemoving environment variables previously set by this script ...\033[0;m\" ;
 for key in \${workon_validvariables[@]}; do export -n \$key ; done ;
-export -n \$envfile ;
+export -n \$cityfile ;
 echo -e \"\033[1;33mRemoving command aliases ...\033[0;m\" ;
 unalias add ;
 unalias remove ;

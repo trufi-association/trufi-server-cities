@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source ./lib/colorful
+source ./lib/env
 
 # Run added extensions (this will be automatically normalized to 'up --detach' before passing to docker-compose)
 # ---------------------
@@ -55,7 +56,6 @@ reset="\033[0;m"
 
 unset $1
 
-environment=""
 # see https://riptutorial.com/bash/example/6886/associative-arrays
 declare -A envs
 envs[production]="./data/nginx/app.conf"
@@ -63,14 +63,7 @@ envs[development]="./dev/app.conf"
 declare -A maincomposefiles
 maincomposefiles[production]="docker-compose.yml"
 maincomposefiles[development]="docker-compose.dev.yml"
-
-if [ -d "./data/certbot" ]; then
-	environment="production"
-else
-	environment="development"
-fi
-
-maincomposefile="${maincomposefiles[$environment]}"
+maincomposefile="${maincomposefiles[$env]}"
 
 _donothing() {
 	return 0
@@ -129,12 +122,12 @@ if [ "$action" = "run" ] || [ "$action" = "up" ]; then
 	action="up --detach"
 	unset $2
 elif [ "$action" = "ls" ]; then
-	orangeecho "list the running containers of each extension of environment '$city' all at once (nginx will be always included) ..."
+	orangeecho "list the running containers of each extension of city '$city' all at once (nginx will be always included) ..."
 	action="ps"
 	customCode="_donothing"
 	customDisplay="_ls"
 elif [ "$action" = "lsall" ]; then
-	orangeecho "list the running containers of all environments ..."
+	orangeecho "list the running containers of all citys ..."
 	action="ps"
 	customCode="_donothing"
 	customDisplay="_lsall"
@@ -146,7 +139,7 @@ elif [ "$action" = "log" ] || [ "$action" = "viewlog" ] ; then
 	exit 0
 fi
 
-# list all added extensions for the current environment
+# list all added extensions for the current city
 function listAddedExtensions() {
 	for item in `dir "$1"`;
 	do
@@ -163,8 +156,8 @@ for extension in ${added_extensions[@]}; do
 	cd "$extension"
 	
 	if [ -z "$customCode" ]; then
-		orangeecho "performing desired action '$action' on extension '$extension' in environment '$city'..."
-		sudo docker-compose -p "$projectname" -f $extension_dockercompose_city --env-file ../../$envfile $action
+		orangeecho "performing desired action '$action' on extension '$extension' in city '$city'..."
+		sudo docker-compose -p "$projectname" -f $extension_dockercompose_city --env-file ../../$cityfile $action
 	else
 		eval $customCode $extension_dockercompose $action
 	fi
@@ -191,10 +184,10 @@ if [ -z "$customCode" ]; then
 	#                                                 wc -l    - count the lines returned by the last command
 	
 	if [ "$action" = "down" ] && [ `sudo docker container ls | grep "$projectname" | wc -l` -gt `sudo docker-compose -f $maincomposefile ps -q | wc -l` ]; then
-		blueecho "Not turning down 'nginx' as this is what running containers from other environments depend on!"
+		blueecho "Not turning down 'nginx' as this is what running containers from other cities depend on!"
 	else
 		orangeecho "performing desired action '$action' on $maincomposefile $appendTXT..."
-		sudo docker-compose -p "$projectname" -f $maincomposefile --env-file ./$envfile $action
+		sudo docker-compose -p "$projectname" -f $maincomposefile --env-file ./$cityfile $action
 	fi
 else
 	eval $customCode $maincomposefile $action
