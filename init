@@ -98,11 +98,20 @@ for i in `dir $filesDir`; do
 	pycache=`echo "$i" | grep "__pycache__"`
 	lib=`echo "$i" | grep -i "lib"`
 	if [ -z "$initscript" ] && [ -z "$pycache" ] && [ -z "$lib" ]; then
-		newname=${i//".py"/""} # Using bash for editing complex YAML structures is not reliable enough. We use python3 scripts from now on
+		newname=${i//".py"/""} # Using bash for editing complex YAML structures is not reliable enough. We use python3 scripts for cases where editing YAML is necessary
 		orangeecho "  copying file '$i' as '$newname' to the '$oldbrand_dir' directory ..."
+		rm -R "$oldbrand_dir/$newname" 2>/dev/null
 		cp -r "$filesDir/$i" "$oldbrand_dir/$newname"
 	fi
 done
 
 orangeecho "copying library ..."
 cp -r "$filesDir/lib" "$oldbrand_dir/lib"
+
+python3 modifyComposes.py
+
+greenecho "#################### END ################################"
+greenecho "[DONE]    $oldbrand --> $newbrand    "
+greenecho "#################### END ################################"
+echo
+greenecho "If there were no errors you can enjoy your copy of '$newbrand'!"
