@@ -1,0 +1,98 @@
+#!/bin/bash
+
+source ./lib/colorful
+
+environment="development"
+ENVIRONMENT="DEVELOPMENT"
+nginxconf="./nginx/app.dev.conf"
+
+MODE_REALDOMAINS="real domains"
+MODE_VIRTUALDOMAINS="virtual domains"
+CURMODE=""
+
+virtualdomains_locationblock="	location \/ \{ proxy_pass \$backendpathinterweb \; \# mark675 \}"
+
+
+if [ -n "$1" ]; then
+	environment="$1"
+fi
+
+if [ -n "$2" ]; then
+	ENVIRONMENT="$2"
+fi
+
+if [ -n "$3" ]; then
+	nginxconf="$3"
+fi
+
+greenecho "####################################################"
+greenecho "               SETTING UP $ENVIRONMENT               "
+greenecho "####################################################"
+echo
+blueecho "CHOSSE THE MODE TO OPERATE IN"
+blueecho "---------------------------------------------------"
+blueecho "You can operate the backend in two different modes!"
+blueecho "---------------------------------------------------"
+blueecho "Mode '$MODE_VIRTUALDOMAINS':"
+blueecho "  - allows you to operate all backends for all different cities under **one** subdomain e.g. 'app.example.com"
+blueecho "  - A script internally converts uris like 'http(s)://app.example.com/dehh/tileserver' to 'http://tileserver-dehh' so it tries to guess the name of the docker container to use based on the uri given by the client."
+blueecho "  - limiations:"
+blueecho "    - are not free in custom nginx configurations to use e.g. you cannot set additional headers"
+blueecho "    - most webportals of the extensions will stop working correctly or will not work at all (if you use them)"
+blueecho "  - NON STANDARD"
+blueecho "    - this mode virtualizes subdomains by moving them from e.g. 'tileserver.dehh.example.com' to the url part e.g. 'app.example.com/dehh/tileserver where 'app' is the subdomain. But that is against the philosophy of using a domain."
+blueecho "    - Normally using subdomains DON'T cause any extra costs and also using wildcard SSL certificates they don't add to the complexity."
+blueecho "    - If you want to run extensions but only have them accessible on localhost then don't use this mode!"
+echo
+blueecho "MODE '$MODE_REALDOMAINS' (recommended and selected as default):"
+blueecho "  - allows you to use different subdomains for each city/region you operate extension instances for e.g. 'dehh.example.com' for Hamburg in Germany and 'brrecife.example.com' for Recife in Brazil."
+blueecho "  - STANDARD"
+blueecho "    - this is aligned to the idea of having subdomains"
+blueecho "    - we use this mode on our own backend server"
+
+maxcount=3
+for i in {1..2}; do
+	echo -ne "showing prompt in $((maxcount - i)) ...\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
+	sleep 1
+done
+
+echo "Just hit enter without typing anything to choose the default."
+echo -e "Choose the mode? ($MODE_REALDOMAINS|$MODE_VIRTUALDOMAINS):\033[0;36m] "
+read decision
+if [ "$decision" = "" ]; then # default chosen
+	decision="$MODE_REALDOMAINS"
+fi
+if [ "$decision" = "$MODE_REALDOMAINS" ]; then
+	CURMODE=$MODE_REALDOMAINS
+elif [ "$decision" = "$MODE_VIRTUALDOMAINS" ]; then
+	CURMODE=$MODE_VIRTUALDOMAINS
+else
+	echo -e "\033[0;31mError: invalid input\033[0;m">&2
+	exit 1
+fi
+
+orangeecho "preparing nginx configuration ..."
+dest="./data/nginx/cities/virtualdomains.conf"
+if ! [ -f "$dest" ] && [ "$CURMODE" = "$MODE_VIRTUALDOMAINS" ]; then
+	orangeecho "  copying '$nginxconf' to '$dest' ..."
+	sed "s/# extensions/# virtal domain location block\n$virtualdomains_locationblock/" $nginxconf > $dest
+	errorcode=$?
+	
+	if [ $errorcode -gt 0 ] && ! [ -f "$dest" ]; then
+		echo -e "\033[0;31mError: could not copy '$src' to '$dest'. Please check the following:
+	- write access to the destination './data/nginx'
+	- that the 'sed' command worked
+	- if the original file '$nginxconf' exists\033[0;m">&2
+		exit 1
+	fi
+
+elif [ "$CURMODE" = "$MODE_REALDOMAINS" ]; then
+	greenecho "  doing something with nginx configurations before adding a city is not necessary. Skipping this step!"
+fi
+
+# set enviroment flag
+echo "$CURMODE">"./data/.$enviroment"
+
+echo "$environment enviroment set up"
+
+exit 0
