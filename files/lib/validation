@@ -2,22 +2,11 @@
 
 # environment and mode
 args=( $@ )
-env="development"
-
-MODE_REALDOMAINS="real domains"
-MODE_VIRTUALDOMAINS="virtual domains"
-CURMODE=""
-
-MODE_VIRTUALDOMAINS_INDICATOR="./data/nginx/cities/virtualdomains.conf"
-ENV_PROD_INDICATOR="./data/.production"
-
-if [ -d "$ENV_PROD_INDICATOR" ]; then
-	env="production"
-fi
+source ./lib/env
 
 # validations
 ## if $enfile is empty and the user specified less than two arguments
-if [ -z "$envfile" ] && [ ${#args[@]} -lt 2 ]; then
+if [ -z "$cityfile" ] && [ ${#args[@]} -lt 2 ]; then
 	redecho "  Insufficient arguments.">&2
 	usage
 	exit 1
@@ -25,21 +14,21 @@ if [ -z "$envfile" ] && [ ${#args[@]} -lt 2 ]; then
 fi
 
 ## if $enfile is empty but the user specified two arguments
-if [ -z "$envfile" ] && [ "${#args[@]}" = "2" ]; then
+if [ -z "$cityfile" ] && [ "${#args[@]}" = "2" ]; then
 	envname=${args[0]//".env"/""}
-	export envfile="./config/$envname.env"
+	export cityfile="./config/$envname.env"
 	unset args[0]
 fi
 
 envname=$city
 
 ## if $enfile contains something but the $city environment variable hasn't been populated
-if [ -n "$envfile" ] && [ -z "$city" ]; then
+if [ -n "$cityfile" ] && [ -z "$city" ]; then
 	orangeecho "  invoke '. ./workon' ..."
 	. ./workon
 fi
 
 ## if $city is empty
 if [ -z "$city" ]; then
-	redecho "  Error: Your environment file at '$envfile' hasn't been loaded correctly or is corrupted. Try executing '. ./workas' . Are you sure you specified the 'city' variable in that env file?">&2
+	redecho "  Error: Your config file at '$cityfile' hasn't been loaded correctly or is corrupted. Try executing '. ./workas' . Are you sure you specified the 'city' variable in that env file?">&2
 fi
