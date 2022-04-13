@@ -1,0 +1,85 @@
+#!/bin/bash
+
+source ./lib/colorful
+
+usage() {
+	blueecho "USAGE 1:"
+	blueecho "./add_extension <name of env file> <name of extension>"
+	blueecho "./add_extension Bolivia-Cochabamba otp"
+	blueecho "USAGE 2 (works only when \$enfile has been set e.g. by 'export $enfile=[...]' or by invoking '. ./workas'):"
+	blueecho "./add_extension <name of extension>"
+	blueecho "./add_extension otp"
+}
+
+envname=""
+extname=""
+
+blueecho "1. perform some checks & normalizations"
+source ./lib/validation
+
+extname="${args[0]}"
+extDir="./extensions/$extname"
+## if $extname is empty or $extDir does not exist
+if [ -z $extname ] || ! [ -d "$extDir" ]; then
+	redecho "  Error: You must specify a valid name of an extension to add to environment '$city'">&2
+	echo "  A list of extensions available:"
+	dir ./extensions
+	exit 1
+fi
+
+blueecho "2. remove the extension"
+
+# dataDir="$extDir/data_$city"
+# dataDirInactive="$dataDir.inactive"
+ymlFile="$extDir/$city.yml"
+ymlFileInactive="$ymlFile.inactive"
+
+if [ -f "$ymlFile" ]; then
+	orangeecho "   removing extension  '$extname' ( directory '$extDir' ) for environment '$city' from environment '$city' ..."
+	
+	cd $extDir
+	sudo docker-compose -f "$city.yml" down
+	cd ../../
+	
+	mv "$ymlFile" "$ymlFileInactive" --verbose
+	if ! [ -f "$ymlFileInactive" ]; then
+		redecho "   Removing failed! Do I have write access to '$ymlFile'?">&2
+		exit 1
+	fi
+	blueecho "   This operation did not remove file '$ymlFile' but set it to 'inactive'!"
+else
+	greenecho "   extension '$extname' for environment '$city' already removed. No need to do it again :)"
+fi
+# elif [ -d "$dataDir" ]; then
+# 	orangeecho "   removing extension '$extname' ( directory '$extDir' ) from environment '$city' ..."
+# 	
+# 	cd $extDir
+# 	sudo docker-compose -f docker-compose.yml --env-file ../../$envfile down
+# 	cd ../../
+# 	
+# 	mv "$dataDir" "$dataDirInactive" --verbose
+# 	if ! [ -d "$dataDirInactive" ]; then
+# 		redecho "   Removing failed! Do I have write access to '$dataDir'?">&2
+# 		exit 1
+# 	fi
+# 	blueecho "   This operation did not removed '$dataDir' but set it to 'inactive' thus deactivating the extension '$extname' for environment '$city' automatically"
+# else
+# 	greenecho "   extension '$extname' for environment '$city' already removed. No need to do it again :)"
+# fi
+
+blueecho "3. remove nginx configuration"
+if [ -f "./data/nginx/cities/$city/$extname.conf" ]; then
+	orangeecho "   removing nginx configuration of extension '$extname' from nginx environment for '$city'  ..."
+	rm "./data/nginx/cities/$city/$extname.conf" --verbose
+fi
+
+if [ -d "./data/nginx/cities/$city" ] && [ -z `dir "./data/nginx/cities/$city"` ]; then
+	orangeecho "   removing nginx configuration of environment '$city' because it's empty now ..."
+	rm -R "./data/nginx/cities/$city" --verbose
+	if [ -f "./data/nginx/cities/$city.conf" ]; then
+		orangeecho "   completing removal of nginx configuration for environment '$city' ..."
+		rm "./data/nginx/cities/$city.conf" --verbose
+	fi
+fi
+
+greenecho "removed trufi extension '$extname' from environment '$city'"
