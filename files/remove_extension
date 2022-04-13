@@ -21,7 +21,7 @@ extname="${args[0]}"
 extDir="./extensions/$extname"
 ## if $extname is empty or $extDir does not exist
 if [ -z $extname ] || ! [ -d "$extDir" ]; then
-	redecho "  Error: You must specify a valid name of an extension to add to environment '$city'">&2
+	redecho "  Error: You must specify a valid name of an extension to remove from city '$city'">&2
 	echo "  A list of extensions available:"
 	dir ./extensions
 	exit 1
@@ -35,7 +35,7 @@ ymlFile="$extDir/$city.yml"
 ymlFileInactive="$ymlFile.inactive"
 
 if [ -f "$ymlFile" ]; then
-	orangeecho "   removing extension  '$extname' ( directory '$extDir' ) for environment '$city' from environment '$city' ..."
+	orangeecho "   removing extension  '$extname' ( directory '$extDir' ) for city '$city' from city '$city' ..."
 	
 	cd $extDir
 	sudo docker-compose -f "$city.yml" down
@@ -48,38 +48,30 @@ if [ -f "$ymlFile" ]; then
 	fi
 	blueecho "   This operation did not remove file '$ymlFile' but set it to 'inactive'!"
 else
-	greenecho "   extension '$extname' for environment '$city' already removed. No need to do it again :)"
-fi
-# elif [ -d "$dataDir" ]; then
-# 	orangeecho "   removing extension '$extname' ( directory '$extDir' ) from environment '$city' ..."
-# 	
-# 	cd $extDir
-# 	sudo docker-compose -f docker-compose.yml --env-file ../../$envfile down
-# 	cd ../../
-# 	
-# 	mv "$dataDir" "$dataDirInactive" --verbose
-# 	if ! [ -d "$dataDirInactive" ]; then
-# 		redecho "   Removing failed! Do I have write access to '$dataDir'?">&2
-# 		exit 1
-# 	fi
-# 	blueecho "   This operation did not removed '$dataDir' but set it to 'inactive' thus deactivating the extension '$extname' for environment '$city' automatically"
-# else
-# 	greenecho "   extension '$extname' for environment '$city' already removed. No need to do it again :)"
-# fi
-
-blueecho "3. remove nginx configuration"
-if [ -f "./data/nginx/cities/$city/$extname.conf" ]; then
-	orangeecho "   removing nginx configuration of extension '$extname' from nginx environment for '$city'  ..."
-	rm "./data/nginx/cities/$city/$extname.conf" --verbose
+	greenecho "   extension '$extname' for city '$city' already removed. No need to do it again :)"
 fi
 
-if [ -d "./data/nginx/cities/$city" ] && [ -z `dir "./data/nginx/cities/$city"` ]; then
-	orangeecho "   removing nginx configuration of environment '$city' because it's empty now ..."
-	rm -R "./data/nginx/cities/$city" --verbose
-	if [ -f "./data/nginx/cities/$city.conf" ]; then
-		orangeecho "   completing removal of nginx configuration for environment '$city' ..."
-		rm "./data/nginx/cities/$city.conf" --verbose
+removeNGINXconf() {
+	if [ -f "./data/nginx/$1/$city/$extname.conf" ]; then
+		orangeecho "   removing nginx configuration of extension '$extname' from nginx city config for '$city'  ..."
+		rm "./data/nginx/$1/$city/$extname.conf" --verbose
 	fi
+
+	if [ -d "./data/nginx/$1/$city" ] && [ -z `dir "./data/nginx/$1/$city"` ]; then
+		orangeecho "   removing nginx configuration of city '$city' because it's empty now ..."
+		rm -R "./data/nginx/$1/$city" --verbose
+		if [ -f "./data/nginx/$1/$city.conf" ]; then
+			orangeecho "   completing removal of nginx configuration for city '$city' ..."
+			rm "./data/nginx/$1/$city.conf" --verbose
+		fi
+	fi
+}
+
+blueecho "3. remove interweb nginx configuration"
+removeNGINXconf "interweb"
+if [ "$env" = "production" ]; then
+	blueecho "4. remove intraweb nginx configuration"
+	removeNGINXconf "intraweb"
 fi
 
-greenecho "removed trufi extension '$extname' from environment '$city'"
+greenecho "removed trufi extension '$extname' from city '$city'"

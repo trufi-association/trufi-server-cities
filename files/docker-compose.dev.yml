@@ -3,7 +3,8 @@ services:
   nginx:
     image: nginx #:1.15-alpine
     volumes:
-      - ./data/nginx/cities:/etc/nginx/conf.d:ro
+      - ./data/nginx/interweb:/etc/nginx/interweb:ro
+      - ./data/nginx/intraweb:/etc/nginx/intraweb:ro
       - ./data/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./data/nginx/inc:/etc/nginx/inc
     ports:
