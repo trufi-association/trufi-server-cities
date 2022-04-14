@@ -22,6 +22,7 @@ for ext in os.listdir(extensionsPath):
 	extDir = os.path.join(extensionsPath, ext)
 	orangeprint("  modifying extension '{}' ('{}') ...".format(ext, extDir))
 	if os.path.exists(os.path.join(extDir, "data")):
+		print("    renaming directory 'data' to 'data_template' ...")
 		os.rename(os.path.join(extDir, "data"), os.path.join(extDir, "data_template"))
 		
 	for compose in ["docker-compose.yml", "docker-compose.yml.inactive"]:
@@ -54,6 +55,6 @@ for ext in os.listdir(extensionsPath):
 				dockercompose["services"][service + "_$city"] = dockercompose["services"][service]
 				del dockercompose["services"][service]
 				
-			sfile = open("docker-compose.yml", "w")
+			sfile = open(os.path.join(extDir, "docker-compose.yml"), "w")
 			sfile.write(yaml.dump(dockercompose, sort_keys=False, default_flow_style=False))
 			sfile.close()

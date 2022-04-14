@@ -66,17 +66,12 @@ echo "Do you want to process? (y|n): "
 read decision
 checkDecision $decision "y"
 
-echo 
-echo "Did you read also the note about 'THERE IS NO BACKWARD COMPACTIBILITY!'? (yes|n): "
-read decisionSecond
-checkDecision $decisionSecond "yes"
-
-echo -ne "Okay, time to grab a coffee\033[0K\r"
+echo -ne "Okay, time to grab a coffee (still time hit CTRL+C to stop it)\033[0K\r"
 sleep 1
-echo -ne "and to enjoy the show!\033[0K\r"
+echo -ne "and to enjoy the show! (still time hit CTRL+C to stop it)\033[0K\r"
 sleep 1
-maxcount=4
-for i in {1..3}; do
+maxcount=3
+for i in {1..2}; do
 	echo -ne "Show begins in $((maxcount - i)) (still time hit CTRL+C to stop it)\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
 	sleep 1
 done
@@ -96,17 +91,20 @@ orangeecho "copying files from '$filesDir' into the '$oldbrand_dir' directory ..
 for i in `dir $filesDir`; do
 	initscript=`echo "$i" | grep "__init__"`
 	pycache=`echo "$i" | grep "__pycache__"`
-	lib=`echo "$i" | grep -i "lib"`
-	if [ -z "$initscript" ] && [ -z "$pycache" ] && [ -z "$lib" ]; then
+	type="file"
+	if [ -z "$initscript" ] && [ -z "$pycache" ]; then
 		newname=${i//".py"/""} # Using bash for editing complex YAML structures is not reliable enough. We use python3 scripts for cases where editing YAML is necessary
-		orangeecho "  copying file '$i' as '$newname' to the '$oldbrand_dir' directory ..."
-		rm -R "$oldbrand_dir/$newname" 2>/dev/null
-		cp -r "$filesDir/$i" "$oldbrand_dir/$newname"
+		orangeecho "  copying $type '$i' as '$newname' to the '$oldbrand_dir' directory ..."
+		# if target already exists and is a directory
+		if [ -d "$oldbrand_dir/$newname" ]; then # then merge the source with the target
+			cp -a ./$filesDir/$i/* ./$oldbrand_dir/$newname # no quoting
+		else # in other cases it is a file and can be overwritten by source
+			cp -r "$filesDir/$i" "$oldbrand_dir/$newname"
+		fi
+		#rm -R "$oldbrand_dir/$newname" 2>/dev/null
+		#cp -r "$filesDir/$i" "$oldbrand_dir/$newname"
 	fi
 done
-
-orangeecho "copying library ..."
-cp -r "$filesDir/lib" "$oldbrand_dir/lib"
 
 orangeecho "copying README ..."
 cp "README.md" "$oldbrand_dir/README.md"
