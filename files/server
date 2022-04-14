@@ -38,21 +38,19 @@ source ./lib/env
 # other commands that docker-compose accepts
 
 args=( $@ )
-envname=""
+operateInScope=""
+
+declare -A added_city_extensions
+extension_dockercompose_city="$city.yml"
+maincomposefile=""
+color="\033[0;33m"
+reset="\033[0;m"
 
 body=()
 projectname=`basename "$PWD"`
 action="$1"
 customCode=""
 customDisplay=""
-
-added_extensions=()
-extension_dockercompose_original="docker-compose.yml"
-extension_dockercompose_city="$city.yml"
-extension_dockercompose="$extension_dockercompose_original"
-maincomposefile=""
-color="\033[0;33m"
-reset="\033[0;m"
 
 unset $1
 
@@ -64,6 +62,51 @@ declare -A maincomposefiles
 maincomposefiles[production]="docker-compose.yml"
 maincomposefiles[development]="docker-compose.dev.yml"
 maincomposefile="${maincomposefiles[$env]}"
+
+# if the first argument is a valid city configuration file and provided in the form 'Country-City' or 'Country-City.env'
+if [ -f "./config/${args[0]/'.env'/''}.env" ]; then # export the variables in the city configuration file
+	export $(cat ../$envfile | xargs)
+fi
+
+if [ -z "$city" ]; then
+	echo "operating in global scope because no city configuration were found. Commands affect all added extensions in all cities"
+	maxcount=6
+	for i in {1..5}; do
+		echo -ne "\033[0;36mexecuting command '$action' in $((maxcount - i))\033[0K\r\033[0;m" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
+		sleep 1
+	done
+	operateInScope="global"
+	cityrelatedtext="in all cities"
+	# list all added extensions in all cities
+	function listAddedExtensions() {
+		for item in `dir "$1"`;
+		do
+			local addedExtensions=""
+			for content in `dir "$1/$item"`;
+			do
+				if ! [ "$content" == "docker-compose.yml" ] && [[ "$content" == *.yml ]] && [ -f "$1/$item/$content" ]; then
+					addedExtensions+=" -f $content"
+				fi
+			done
+			if [ -n "$addedExtensions" ]; then
+				added_city_extensions[$item]="$addedExtensions"
+			fi
+		done
+	}
+else
+	operateInScope="city"
+	cityrelatedtext="in city '$city'"
+	# list all added extensions for the current city
+	function listAddedExtensions() {
+		for item in `dir "$1"`;
+		do
+			if [ -f "$1/$item/$extension_dockercompose_city" ]; then
+				added_city_extensions[$item]="-f $extension_dockercompose_city"
+			fi
+		done
+	}
+fi
+
 
 _donothing() {
 	return 0
@@ -78,11 +121,7 @@ _ls() {
 	result=( $result )
 	for i in "${result[@]}"; do
 		if (( $line > 1 )); then
-			if [ "$1" = "all" ]; then
-				belongstoproject=`echo $i | grep "$projectname"`
-			else
-				belongstoproject=`echo $i | grep "$projectname" | grep "$city"`
-			fi
+			belongstoproject=`echo $i | grep "$projectname" | grep "$city"`
 			isNginx=`echo $i | grep "$projectname" | grep "nginx"`
 			if [ -n "$belongstoproject" ] || [ -n "$isNginx" ]; then
 				body+=($i)
@@ -94,10 +133,6 @@ _ls() {
 	done
 	
 	printArrayLineByLine
-}
-
-_lsall() {
-	ls "all"
 }
 
 printArrayLineByLine() {
@@ -112,7 +147,7 @@ printArrayLineByLine() {
 }
 
 
-if ! [ "$action" = "lsall" ]; then
+if ! [ "$operateInScope" = "global" ]; then
 	blueecho "performing some checks & normalizations ..."
 	source ./lib/validation
 fi
@@ -122,15 +157,10 @@ if [ "$action" = "run" ] || [ "$action" = "up" ]; then
 	action="up --detach"
 	unset $2
 elif [ "$action" = "ls" ]; then
-	orangeecho "list the running containers of each extension of city '$city' all at once (nginx will be always included) ..."
+	orangeecho "list the running containers of each extension $cityrelatedtext all at once (nginx will be always included) ..."
 	action="ps"
 	customCode="_donothing"
 	customDisplay="_ls"
-elif [ "$action" = "lsall" ]; then
-	orangeecho "list the running containers of all citys ..."
-	action="ps"
-	customCode="_donothing"
-	customDisplay="_lsall"
 elif [ "$action" = "log" ] || [ "$action" = "viewlog" ] ; then
 	echo -e "${color}redirecting to 'viewlog' script ...${reset}"
 	extension="$2"
@@ -139,27 +169,18 @@ elif [ "$action" = "log" ] || [ "$action" = "viewlog" ] ; then
 	exit 0
 fi
 
-# list all added extensions for the current city
-function listAddedExtensions() {
-	for item in `dir "$1"`;
-	do
-		if [ -f "$1/$item/$extension_dockercompose_city" ]; then
-			added_extensions+=( "$item" )
-		fi
-	done
-}
-
-listAddedExtensions "extensions" # the directories in 'extensions' represent the names of the extensions. Only their named will be added to the $added_extensions list
+listAddedExtensions "extensions" # the directories in 'extensions' represent the names of the extensions
 
 cd extensions
-for extension in ${added_extensions[@]}; do
+for extension in ${!added_city_extensions[@]}; do
 	cd "$extension"
 	
 	if [ -z "$customCode" ]; then
-		orangeecho "performing desired action '$action' on extension '$extension' in city '$city'..."
-		sudo docker-compose -p "$projectname" -f $extension_dockercompose_city --env-file ../../$cityfile $action
+		orangeecho "performing desired action '$action' on extension '$extension' $cityrelatedtext ..."
+		#echo "sudo docker-compose -p \"$projectname\" ${added_city_extensions[$extension]} $action"
+		sudo docker-compose -p "$projectname" ${added_city_extensions[$extension]} $action
 	else
-		eval $customCode $extension_dockercompose $action
+		eval $customCode "${added_city_extensions[$extension]}" "$action"
 	fi
 	
 	cd ../

@@ -129,7 +129,28 @@ e.g.
   - Example: `restart_extension "Bolivia-Cochabamba" otp`
   - Example (using `workon` script): `restart_extension otp`
 
-#### Server management (all active citys and their enabled extensions + web server)
+#### Server management (all active cities and their enabled extensions + web server)
+
+```sh
+./server [<name of city>] <action>
+```
+
+The `server` script behaves differently based on how it is run. If you use it in a Bash modified by the `workon` script then the action is relative to the current city. Of course you don't have to provide the argument `<name of city>` anymore as in the previous section. This is the 'city' scope. If you use it in the standard Bash and you don't provide the argument `<name of city>` then the action will be applied to all added extensions in all cities. This is the 'global' scope. This will not work for the `viewlog` or `log` action cause they can only applied to a container at a time.
+
+Some examples:
+
+```sh
+. ./workon Germany-Hamburg
+server up # will bring all added extensions in city 'Germany-Hamburg' up (scope 'city')
+```
+
+```sh
+./server "Germany-Hamburg" up # will bring all added extensions in city 'Germany-Hamburg' up (scope 'city')
+```
+
+```sh
+./server up # will bring all added extensions in all cities up (scope 'global')
+```
 
 - **To start the server for the first time**
   - Command: `server <name of city> run` or `server <name of city> up`
@@ -160,9 +181,7 @@ e.g.
 When we changed something on the repo and you pulled the new changes do the following:
 
 ```bash
-./server <name of city> down # to stop all added extensions + the web server and to remove them but not their images
-./server <name of city> build # to rebuild all added extensions + the web server and their images (overwriting the already existing ones)
-./server <name of city> start # to start all added extensions + the web server
+./server down # to stop all added extensions in all cities + the web server and to remove them but not their images
+./server build # to rebuild all added extensions in all cities + the web server and their images (overwriting the already existing ones)
+./server <name of city> start # to start all added extensions in all cities + the web server
 ```
-
-Do it for each city you're running.
