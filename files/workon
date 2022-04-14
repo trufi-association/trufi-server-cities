@@ -68,7 +68,7 @@ alias close="echo -e \"\033[1;33mChanging prompt back ...\033[0;m\" ;
 export PS1=\"$defaultPS1\";
 echo -e \"\033[1;33mRemoving environment variables previously set by this script ...\033[0;m\" ;
 for key in \${workon_validvariables[@]}; do export -n \$key ; done ;
-export -n \$cityfile ;
+export -n cityfile ;
 echo -e \"\033[1;33mRemoving command aliases ...\033[0;m\" ;
 unalias add ;
 unalias remove ;
