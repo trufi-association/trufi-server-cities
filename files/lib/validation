@@ -5,7 +5,7 @@ args=( $@ )
 source ./lib/env
 
 # validations
-## if $enfile is empty and the user specified less than two arguments
+## if $cityfile is empty and the user specified less than two arguments
 if [ -z "$cityfile" ] && [ ${#args[@]} -lt 2 ]; then
 	redecho "  Insufficient arguments.">&2
 	usage
@@ -13,7 +13,7 @@ if [ -z "$cityfile" ] && [ ${#args[@]} -lt 2 ]; then
 	
 fi
 
-## if $enfile is empty but the user specified two arguments
+## if $cityfile is empty but the user specified two arguments
 if [ -z "$cityfile" ] && [ "${#args[@]}" = "2" ]; then
 	envname=${args[0]//".env"/""}
 	export cityfile="./config/$envname.env"
@@ -22,7 +22,7 @@ fi
 
 envname=$city
 
-## if $enfile contains something but the $city environment variable hasn't been populated
+## if $cityfile contains something but the $city environment variable hasn't been populated
 if [ -n "$cityfile" ] && [ -z "$city" ]; then
 	orangeecho "  invoke '. ./workon' ..."
 	. ./workon
