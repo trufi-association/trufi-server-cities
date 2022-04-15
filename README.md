@@ -46,7 +46,7 @@ Concerning background map tiles: Decide wethever you want to use the extension *
 
 ## Intraweb
 
-In a [production environment](#production_environmemt) this backend wires up a complete Intraweb for sysadmins to debug/check (misbehaving) extensions related to a city. A sysadmin can enjoy the beauty of the webportals of some extensions without the need to expose them to the public (our provided nginx configurations for each extension limit access extremely). The Intraweb is accessible at  `localhost:8090` of your server. So do the well known [SSH port forwarding](https://phoenixnap.com/kb/ssh-port-forwarding) magic to access it through your webbrowser on your own machine.
+In a [production environment](#production_environmemt) this backend wires up a complete Intraweb for sysadmins to debug/check (misbehaving) extensions related to a city. A sysadmin can enjoy the beauty of the webportals of some extensions without the need to expose them to the public (our provided nginx configurations for each extension limit access extremely). The Intraweb is accessible at  `localhost:8090` on your server. So do the well known [SSH port forwarding](https://phoenixnap.com/kb/ssh-port-forwarding) magic to access it through your webbrowser on your own machine.
 
 ```sh
 ssh <username on server>@<server hostname or ip> -L 8090:127.0.0.1:8090
@@ -98,7 +98,17 @@ like
 
 ### Production environment
 
-We hide all (optional) services behind a nginx proxy which also handles the encryption for them. To make encrypted connections to that nginx proxy possible we need to issue a HTTP certificate. Luckily there is *Let’s Encrypt* issuing them to anyone without the need to pay. Initialization is to be done using `init.prod` and affects all cities.
+We hide all (optional) services behind a nginx proxy which also handles the encryption for them. To make encrypted connections to that nginx proxy possible we need to issue a HTTPS certificate. Luckily there is *Let’s Encrypt* issuing them to anyone without the need to pay. Initialization is to be done using `init.prod` and affects all cities but it does not do the certification for you. Instead SSL/TLS support relies on the certificate management infrastructure of the docker host (your linux system). There are multiple ways connecting the dots.
+
+Our docker `nginx` by default listens on the host port `8290` for HTTP and on `8300` for HTTPS requests.
+
+#### Docker `nginx` has its own HTTPS certificate store and runs on a different port
+
+The docker container `nginx` in our provided configuration expects to find the necessary files needed to answer https requests in the host path `./data/certbot/conf` which is in its schematics equal to the well known [/etc/letsencrypt](https://eff-certbot.readthedocs.io/en/stable/using.html#where-certs). Of course this behaviour can be changed that the nginx docker container sees `/etc/letsencrypt` of your host directly although not recommended. This just adds one more security risk to manage. If you care about security you just put the files in `./data/certbot/conf`  you need for running this docker infrastructure. To put it in other words: If you have the following domains `example.com` , `example.uk` and `example.org` . The first domain `example.com` is used by your web server running on the host linux system and the others two are used by the `nginx` running in this docker infrastructure then just put the necessary files for HTTPS on `example.org` and `example.com` into  `./data/certbot/conf` . This way you have `/etc/letsencrypt` on your host for the HTTPS server running on your host system. The other one `./data/certbot/conf` for the HTTPS server running for this infrastructure.
+
+#### Central HTTPS server on your host system
+
+This is useful if you are already providing other services in need of HTTPS to your customers e.g. you are already hosting a website. Now you want to have your server provide different services for different cities. Also your only option if your server is behind a firewall just letting port 80 and 443 pass through. Go setup nginx on your host which then does all the HTTPS stuff and takes care to redirect to the appropriate sub webservers based on specified parameters you have defined. This allows you to use this infrastructure in development mode without any HTTPS configuration.
 
 ### Commands
 
