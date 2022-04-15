@@ -9,14 +9,16 @@ if [ -z "$1" ] && [ $CURMODE = "$MODE_VIRTUALDOMAINS" ] then
     exit 1
 fi
 
+# deprecated
 echo "  doing the SSL stuff ..."
-if ! [ -d "./data/certbot" ]; then
+if ! [ -d "./data/letsencrypt" ]; then
     cd ./letsencrypt
     /bin/bash ./init-letsencrypt.sh $1
     mv ./data/certbot/ ../data/certbot/
     echo "letsencrypt started"
     cd ../
 fi
+############
 
 echo "  adding domain name ..."
 if [  $CURMODE = "$MODE_VIRTUALDOMAINS" ]; then

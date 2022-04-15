@@ -8,7 +8,8 @@ orangeecho() {
 	echo -e "\033[1;33m$1\033[0;m"
 }
 
-workon_validvariables=( "city" "otpversion" "domain" )
+workon_requiredvariables=( "city" "otpversion" "domain" )
+workon_optionalvariables=( "email" )
 
 if [ -z "$enfile" ] && [ -z "$1" ]; then
 	redecho "No city file to load found. \033[0;mExecute '\033[0;34m. ./workon <name of env file>\033[0;m'"
@@ -36,12 +37,19 @@ if ! [ -z "$cityfile" ]; then
 	# replace whitespaces with UNIX new line (needed by grep to get one variable with its content back at a time)
 	variables=`echo "$variables" | tr " " "\n"`
 	
-	for key in ${workon_validvariables[@]}; do
+	for key in ${workon_requiredvariables[@]}; do
 		singlevar=`echo "$variables" | grep $key`
 		if [ -z "$singlevar" ]; then
 			echo -e "\033[0;33mWARNING:\033[0;m Environment variable '$key' is missing but mandatory. Some things will not work correctly. Repair the cityfile at '$cityfile' and execute this script again to fix!"
 			errors="yes"
 		else
+			export $singlevar
+		fi
+	done
+	
+	for key in ${workon_optionalvariables[@]}; do
+		singlevar=`echo "$variables" | grep $key`
+		if ! [ -z "$singlevar" ]; then
 			export $singlevar
 		fi
 	done
@@ -67,7 +75,8 @@ alias workon=". ./workon"
 alias close="echo -e \"\033[1;33mChanging prompt back ...\033[0;m\" ;
 export PS1=\"$defaultPS1\";
 echo -e \"\033[1;33mRemoving environment variables previously set by this script ...\033[0;m\" ;
-for key in \${workon_validvariables[@]}; do export -n \$key ; done ;
+for key in \${workon_requiredvariables[@]}; do export -n \$key ; done ;
+for key in \${workon_optionalvariables[@]}; do export -n \$key ; done ;
 export -n cityfile ;
 echo -e \"\033[1;33mRemoving command aliases ...\033[0;m\" ;
 unalias add ;

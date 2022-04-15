@@ -1,0 +1,20 @@
+#!/bin/bash
+
+letsencryptDirHost="./data/letsencrypt"
+emailArg="--register-unsafely-without-email"
+
+
+blueecho "1. perform some checks & normalizations ..."
+source ./lib/validation
+
+if [ -d "$letsencryptDirHost" ]; then
+	orangeecho "creating directory '$letsencryptDirHost' ..."
+	mkdir -p "$letsencryptDirHost"
+fi
+
+if [ -n "$email" ]; then
+	emailArg="--email $email"
+fi
+
+# modify that line as you like and as required to fit your setup
+certbot certonly --webroot -w "$letsencryptDirHost" $emailArg $domain --rsa-key-size 4096 --agree-tos #--force-renewal"
