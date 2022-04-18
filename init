@@ -1,9 +1,12 @@
 #!/bin/bash
-oldbrand="Trufi Server"
-oldbrand_url="https://github.com/trufi-association/trufi-server"
-oldbrand_dir="./trufi-server"
-newbrand="Multi Purpose Trufi Server"
+name="Trufi Multi-Instance Server"
+name_single="Trufi Server"
 filesDir="files"
+
+module_name="Trufi Server Modules"
+module_url="https://github.com/trufi-association/trufi-server-modules"
+module_dir="./trufi-server-modules"
+module_dir_renamed="modules"
 
 if [ -z `which git` ]; then
 	echo -e "\033[1;31mError: 'git' is missing on this system. Please install it as it is a requirement!\033[0;m">$2
@@ -24,8 +27,8 @@ blueecho() {
 
 checkDecision() {
 	if ! [ "$1" = "$2" ]; then
-		greenecho "aborting transformation from '$oldbrand' to '$newbrand' ..."
-		echo -e "\033[1;34mYou are NOW SAVE sir! If you change your mind then execute me again!\033[0;m"
+		greenecho "aborting setting up '$name' ..."
+		echo -e "\033[1;34mIf you change your mind then execute me again\033[0;m"
 		exit 0
 	fi
 
@@ -33,86 +36,171 @@ checkDecision() {
 
 
 greenecho "###################################################"
-greenecho "    $oldbrand --> $newbrand    "
+greenecho "      Setup for '$name'      "
 greenecho "###################################################"
 
-echo "Transformer, transform '$oldbrand' to '$newbrand'!"
-
-
-blueecho "This script will download a copy of '$oldbrand' and will convert it to '$newbrand'"
-blueecho "---------------------------------------------"
-blueecho " - $oldbrand has the limitation of allowing you to serve just one region e.g. a city, or two cities and everything between them."
-blueecho "   or another saying: $oldbrand has the limitation of allowing you just to serve the contents of **one** bounding box."
-blueecho " - $newbrand **does not** have this limitation and supports both approaches!"
-blueecho "   It supports serving data inside **one** bounding box e.g. a city, or two cities and everything between them"
-blueecho "   and it supports serving data from more bounding boxes e.g. a city A and a city B which are not connected to each other or another saying 'city A and city B without anything in between'"
-blueecho "--------------------------------------------"
-blueecho "THERE IS NO BACKWARD COMPACTIBILITY! At the moment we don't provide another script to turn '$newbrand' back to '$oldbrand'. Even such solution would not use this copy but would clone the repo as new in the parent directory of this and will do the initial setup of each region there"
-blueecho "--------------------------------------------"
-blueecho "DEVELOPER ATTENTION!"
-blueecho "This script will download a copy of '$oldbrand' (a git repository) and will convert it to '$newbrand'."
-blueecho "- Do not make changes in the copy and do not commit them. We will reject PR's containing them. If you want to develop around the 'copy' then please fork https://github.com/trufi-association/trufi-server and work on it."
-blueecho "- If you want to make changes to this init script or to the contents in the directory 'files' then you are free to do so on your own fork! We encourage you to make PR's."
-blueecho " - If you make changes to any or both projects we encourage you to upstream them by opening a PR. Your change can be useful and can improve our projects :)"
-blueecho "--------------------------------------------"
-blueecho "--------------------------------------------"
+blueecho "1. Download modules"
+echo "This script will clone a copy of '$module_name' which contains the necessary modules needed to run services for cities"
+echo "After cloning you will be asked some questions needed to do the initial setup."
+echo "--------------------------------------------"
+echo "DEVELOPER ATTENTION!"
+echo "All modules are fetched from '$module_name' (a git repository). Propose changes to them there and not here."
+echo "- Do not make changes to the modules. We will reject PR's containing them. If you want to develop around the 'copy' then please fork $module_url and work on it. Systematic changes which this structure needs will be applied by the subsequent 'modifyComposes' script."
+echo "- If you want to make changes to this init script or to the contents in the directory 'files' then you are free to do so on your own fork! We encourage you to make PR's."
+echo " - If you make changes to any or both projects we encourage you to upstream them by opening a PR. Your change can be useful and can improve our projects :)"
+echo "--------------------------------------------"
 echo 
 maxcount=3
 for i in {1..2}; do
 	echo -ne "showing prompt in $((maxcount - i)) ...\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
 	sleep 1
 done
-echo "Do you want to process? (y|n): "
+echo -e "Do you want to process? (y|n):\033[0;34m"
 read decision
 checkDecision $decision "y"
+echo -en "\033[0;m"
 
-echo -ne "Okay, time to grab a coffee (still time hit CTRL+C to stop it)\033[0K\r"
-sleep 1
-echo -ne "and to enjoy the show! (still time hit CTRL+C to stop it)\033[0K\r"
-sleep 1
-maxcount=3
-for i in {1..2}; do
-	echo -ne "Show begins in $((maxcount - i)) (still time hit CTRL+C to stop it)\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
-	sleep 1
-done
-
-orangeecho "Cloning '$oldbrand_url' ..."
-git clone $oldbrand_url
-if ! [ -d "$oldbrand_dir" ]; then
-	echo "Error: Clone of '$oldbrand_url' failed! Do I have internet access or the necessary write permission to the local filesystem?">&2
-	exit 1
+if ! [ -d "$module_dir_renamed" ]; then
+	orangeecho "   cloning '$module_name' ..."
+	git clone $module_url
+	if ! [ -d "$module_dir" ]; then
+		echo "Error: Clone of '$module_url' failed! Do I have internet access or the necessary write permission to the local filesystem?">&2
+		exit 1
+	fi
+else
+	module_dir=$module_dir_renamed
 fi
 
 # prevents from accidentally committing and uploading changes made by this script
-orangeecho "prevent users from accidentally uploading their changes in '$oldbrand' to git ..."
-rm -R $oldbrand_dir/.git --force
+orangeecho "   prevent users from accidentally uploading their changes in '$module_name' to git ..."
+rm -R $module_dir/.git --force
 
-orangeecho "copying files from '$filesDir' into the '$oldbrand_dir' directory ..."
-for i in `dir $filesDir`; do
-	initscript=`echo "$i" | grep "__init__"`
-	pycache=`echo "$i" | grep "__pycache__"`
-	type="file"
-	if [ -z "$initscript" ] && [ -z "$pycache" ]; then
-		newname=${i//".py"/""} # Using bash for editing complex YAML structures is not reliable enough. We use python3 scripts for cases where editing YAML is necessary
-		orangeecho "  copying $type '$i' as '$newname' to the '$oldbrand_dir' directory ..."
-		# if target already exists and is a directory
-		if [ -d "$oldbrand_dir/$newname" ]; then # then merge the source with the target
-			cp -a ./$filesDir/$i/* ./$oldbrand_dir/$newname # no quoting
-		else # in other cases it is a file and can be overwritten by source
-			cp -r "$filesDir/$i" "$oldbrand_dir/$newname"
-		fi
-		#rm -R "$oldbrand_dir/$newname" 2>/dev/null
-		#cp -r "$filesDir/$i" "$oldbrand_dir/$newname"
-	fi
+orangeecho "   renaming '$module_dir' to '$module_dir_renamed' ..."
+mv $module_dir $module_dir_renamed
+module_dir=$module_dir_renamed
+
+orangeecho "   removing incompactible modules ..."
+incompactibleModules=( "nginx" )
+for module in ${incompactibleModules[@]}; do
+	orangeecho "     $module ..."
+	rm -R "$module_dir/$module"
 done
-
-orangeecho "copying README ..."
-cp "README.md" "$oldbrand_dir/README.md"
 
 python3 modifyComposes.py
 
+greenecho "   Modules downloaded!"
+blueecho "2. Specify environment"
+echo -e "Choose environment [prod|dev]:\033[0;34m"
+read decision
+echo -ne "\033[0;m"
+if [ $decision = "prod" ]; then
+	environment="production"
+	ENVIRONMENT="PRODUCTION"
+	nginxconf="./nginx/app.template.conf"
+elif [ $decision = "dev" ]; then
+	environment="development"
+	ENVIRONMENT="DEVELOPMENT"
+	nginxconf="./nginx/app.dev.conf"
+else
+	redecho "Error: invalid input"
+	exit 1
+fi
+
+blueecho "3. Specify mode"
+
+MODE_REALDOMAINS="real domains"
+MODE_VIRTUALDOMAINS="virtual domains"
+CURMODE=""
+
+virtualdomains_locationblock="	location \/ \{ proxy_pass \$backendpathinterweb \; \# mark675 \}"
+
+echo "CHOSSE THE MODE TO OPERATE IN"
+echo "---------------------------------------------------"
+echo "You can operate the backend in two different modes!"
+echo "---------------------------------------------------"
+echo "Mode '$MODE_VIRTUALDOMAINS':"
+echo "  - allows you to operate all backends for all different cities under **one** subdomain e.g. 'app.example.com"
+echo "  - A script internally converts uris like 'http(s)://app.example.com/dehh/tileserver' to 'http://tileserver-dehh' so it tries to guess the name of the docker container to use based on the uri given by the client."
+echo "  - limiations:"
+echo "    - are not free in custom nginx configurations to use e.g. you cannot set additional headers"
+echo "    - most webportals of the extensions will stop working correctly or will not work at all (if you use them)"
+echo "  - NON STANDARD"
+echo "    - this mode virtualizes subdomains by moving them from e.g. 'tileserver.dehh.example.com' to the url part e.g. 'app.example.com/dehh/tileserver where 'app' is the subdomain. But that is against the philosophy of using a domain."
+echo "    - Normally using subdomains DON'T cause any extra costs and also using wildcard SSL certificates they don't add to the complexity."
+echo "    - If you want to run extensions but only have them accessible on localhost then don't use this mode!"
+echo
+echo "MODE '$MODE_REALDOMAINS' (recommended and selected as default):"
+echo "  - allows you to use different subdomains for each city/region you operate extension instances for e.g. 'dehh.example.com' for Hamburg in Germany and 'brrecife.example.com' for Recife in Brazil."
+echo "  - STANDARD"
+echo "    - this is aligned to the idea of having subdomains"
+echo "    - we use this mode on our own backend server"
+
+maxcount=3
+for i in {1..2}; do
+	echo -ne "showing prompt in $((maxcount - i)) ...\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
+	sleep 1
+done
+
+echo "Just hit enter without typing anything to choose the default."
+echo -e "Choose the mode? ($MODE_REALDOMAINS|$MODE_VIRTUALDOMAINS):\033[0;34m "
+read decision
+echo -ne "\033[0;m"
+if [ "$decision" = "" ]; then # default chosen
+	decision="$MODE_REALDOMAINS"
+fi
+if [ "$decision" = "$MODE_REALDOMAINS" ]; then
+	CURMODE=$MODE_REALDOMAINS
+elif [ "$decision" = "$MODE_VIRTUALDOMAINS" ]; then
+	CURMODE=$MODE_VIRTUALDOMAINS
+else
+	redecho "Error: invalid input"
+	exit 1
+fi
+
+orangeecho "   preparing nginx configuration ..."
+if ! [ -f "$dest" ] && [ "$CURMODE" = "$MODE_VIRTUALDOMAINS" ]; then
+	dest="./data/nginx/interweb/virtualdomains.conf"
+	orangeecho "     copying '$nginxconf' to '$dest' ..."
+	destcontent=`sed "s/# extensions/# virtal domain location block\n$virtualdomains_locationblock/" $nginxconf`
+	errorcode=$?
+	
+	if [ $errorcode -gt 0 ] && ! [ -f "$dest" ]; then
+		echo -e "\033[0;31mError: could not copy '$src' to '$dest'. Please check the following:
+	- write access to the destination './data/nginx'
+	- that the 'sed' command worked
+	- if the original file '$nginxconf' exists\033[0;m">&2
+		exit 1
+	fi
+	
+	if [ "$enviroment" = "production" ]; then
+		echo "Please tell me the domain name. This can be changed later by editing the '$dest' file"
+		read decision
+		orangeecho "     Setting domain '$decision' ..."
+		destcontent=`echo "$destcontent" | sed "s/example.org/$decision/"`
+		domain="$decision"
+	else
+		orangeecho "     Setting domain 'localhost' since we are in 'development' mode (this can be changed later by editing the '$dest' file) ..."
+		destcontent=`echo "$destcontent" | sed "s/example.org/localhost/"`
+		domain="localhost"
+	fi
+	
+	echo "$destcontent">$dest
+
+elif [ "$CURMODE" = "$MODE_REALDOMAINS" ]; then
+	greenecho "     doing something with nginx configurations before adding a city is not necessary. Skipping this step!"
+fi
+
+# write enviroment flag to file
+echo "$CURMODE">"./data/.$environment"
+
+
 greenecho "#################### END ################################"
-greenecho "[DONE]    $oldbrand --> $newbrand    "
+greenecho "[DONE]   Setup for '$name'   "
 greenecho "#################### END ################################"
 echo
-greenecho "If there were no errors you can enjoy your copy of '$newbrand'!"
+greenecho "Current configuration:"
+echo "Environment: $environment"
+echo "Mode       : $CURMODE"
+echo "Domain     : $domain"
+echo "Ability to host services for multiple cities"
+echo
