@@ -19,10 +19,6 @@ source ./lib/env
 # ---------------------
 # server restart
 
-# View log of an extension (this will just redirect to our 'viewlog' script)
-# ---------------------
-# server log <extension name>
-
 # Shut down added extensions
 # ---------------------
 # server down
@@ -42,9 +38,6 @@ operateInScope=""
 
 declare -A added_city_extensions
 extension_dockercompose_city="$city.yml"
-maincomposefile=""
-color="\033[0;33m"
-reset="\033[0;m"
 
 body=()
 projectname=`basename "$PWD"`
@@ -53,15 +46,6 @@ customCode=""
 customDisplay=""
 
 unset $1
-
-# see https://riptutorial.com/bash/example/6886/associative-arrays
-declare -A envs
-envs[production]="./data/nginx/app.conf"
-envs[development]="./dev/app.conf"
-declare -A maincomposefiles
-maincomposefiles[production]="docker-compose.yml"
-maincomposefiles[development]="docker-compose.dev.yml"
-maincomposefile="${maincomposefiles[$env]}"
 
 # if the first argument is a valid city configuration file and provided in the form 'Country-City' or 'Country-City.env'
 if [ -f "./config/${args[0]/'.env'/''}.env" ]; then # export the variables in the city configuration file
@@ -154,7 +138,7 @@ fi
 
 if [ "$action" = "run" ] || [ "$action" = "up" ]; then
 	orangeecho "deprefixing command to a valid docker-compose command ..."
-	action="up --detach"
+	action="up --build --detach"
 	unset $2
 elif [ "$action" = "ls" ]; then
 	orangeecho "list the running containers of each extension $cityrelatedtext all at once (nginx will be always included) ..."
@@ -162,11 +146,11 @@ elif [ "$action" = "ls" ]; then
 	customCode="_donothing"
 	customDisplay="_ls"
 elif [ "$action" = "log" ] || [ "$action" = "viewlog" ] ; then
-	echo -e "${color}redirecting to 'viewlog' script ...${reset}"
-	extension="$2"
-	unset $2
-	./viewlog $extension $@
-	exit 0
+	redecho "Action '$action' no longer supported..."
+# 	extension="$2"
+# 	unset $2
+# 	./viewlog $extension $@
+# 	exit 0
 fi
 
 listAddedExtensions "extensions" # the directories in 'extensions' represent the names of the extensions
@@ -200,18 +184,18 @@ if [ -z "$customCode" ]; then
 	#                             grep "$projectname"          - only show running containers containing $projectname in their name
 	#                                                  wc -l   - count the lines returned by the last command
 	
-	# sudo docker-compose -f $maincomposefile ps -q | wc -l`   - Get running containers belonging to $maincomposefile and count them
-	#    sudo docker-compose -f $maincomposefile ps -q         - Get the ids of the containers belonging to $maincomposefile
+	# sudo docker-compose -f "docker-compose.yml" ps -q | wc -l`   - Get running containers belonging to "docker-compose.yml" and count them
+	#    sudo docker-compose -f "docker-compose.yml" ps -q         - Get the ids of the containers belonging to "docker-compose.yml"
 	#                                                 wc -l    - count the lines returned by the last command
 	
-	if [ "$action" = "down" ] && [ `sudo docker container ls | grep "$projectname" | wc -l` -gt `sudo docker-compose -f $maincomposefile ps -q | wc -l` ]; then
+	if [ "$action" = "down" ] && [ `sudo docker container ls | grep "$projectname" | wc -l` -gt `sudo docker-compose -f "docker-compose.yml" ps -q | wc -l` ]; then
 		blueecho "Not turning down 'nginx' as this is what running containers from other cities depend on!"
 	else
-		orangeecho "performing desired action '$action' on $maincomposefile $appendTXT..."
-		sudo docker-compose -p "$projectname" -f $maincomposefile --env-file ./$cityfile $action
+		orangeecho "performing desired action '$action' on docker-compose.yml $appendTXT..."
+		sudo docker-compose -p "$projectname" -f "docker-compose.yml" --env-file ./$cityfile $action
 	fi
 else
-	eval $customCode $maincomposefile $action
+	eval $customCode $action
 fi
 
 if [ -n "$customDisplay" ]; then
