@@ -7,19 +7,19 @@ source ./lib/colorful
 blueecho "performing some checks & normalizations ..."
 source ./lib/validation
 
-extname="${args[0]}"
-extDir="./extensions/$extname"
-## if $extname is empty or $extDir does not exist
-if [ -z $extname ] || ! [ -d "$extDir" ]; then
-	redecho "  Error: You must specify a valid name of an extension to add to city '$city'">&2
-	echo "  A list of extensions available:"
-	dir ./extensions
+modulename="${args[0]}"
+moduleDir="./modules/$modulename"
+## if $modulename is empty or $moduleDir does not exist
+if [ -z $modulename ] || ! [ -d "$moduleDir" ]; then
+	redecho "  Error: You must specify a valid name of an module to add to city '$city'">&2
+	echo "  A list of modules available:"
+	dir ./modules
 	exit 1
-elif [ -f "$extDir/$city.yml.inactive" ]; then
-	redecho "  Extension '$extname' inactive in city '$city'. Inactive extensions cannot be restarted!"
+elif [ -f "$moduleDir/$city.yml.inactive" ]; then
+	redecho "  Module '$modulename' inactive in city '$city'. Inactive modules cannot be restarted!"
 	exit 1
 fi
 
-cd "$extDir"
+cd "$moduleDir"
 sudo docker-compose -p "$projectname" -f "$city.yml" --env-file ../../$cityfile restart
 cd ../../

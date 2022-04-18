@@ -3,11 +3,11 @@
 source ./lib/colorful
 source ./lib/env
 
-# Run added extensions (this will be automatically normalized to 'up --detach' before passing to docker-compose)
+# Run added modules (this will be automatically normalized to 'up --detach' before passing to docker-compose)
 # ---------------------
 # server run
 
-# Stop added extensions
+# Stop added modules
 # ---------------------
 # server stop
 
@@ -15,19 +15,19 @@ source ./lib/env
 # ---------------------
 # server ls
 
-# Restart added extensions
+# Restart added modules
 # ---------------------
 # server restart
 
-# Shut down added extensions
+# Shut down added modules
 # ---------------------
 # server down
 
-# Pause added extensions
+# Pause added modules
 # ---------------------
 # server pause
 
-# Unpause added extensions
+# Unpause added modules
 # ---------------------
 # server unpause
 
@@ -36,8 +36,8 @@ source ./lib/env
 args=( $@ )
 operateInScope=""
 
-declare -A added_city_extensions
-extension_dockercompose_city="$city.yml"
+declare -A added_city_modules
+module_dockercompose_city="$city.yml"
 
 body=()
 projectname=`basename "$PWD"`
@@ -53,7 +53,7 @@ if [ -f "./config/${args[0]/'.env'/''}.env" ]; then # export the variables in th
 fi
 
 if [ -z "$city" ]; then
-	echo "operating in global scope because no city configuration were found. Commands affect all added extensions in all cities"
+	echo "operating in global scope because no city configuration were found. Commands affect all added modules in all cities"
 	maxcount=6
 	for i in {1..5}; do
 		echo -ne "\033[0;36mexecuting command '$action' in $((maxcount - i))\033[0K\r\033[0;m" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
@@ -61,31 +61,31 @@ if [ -z "$city" ]; then
 	done
 	operateInScope="global"
 	cityrelatedtext="in all cities"
-	# list all added extensions in all cities
-	function listAddedExtensions() {
+	# list all added modules in all cities
+	function listAddedModules() {
 		for item in `dir "$1"`;
 		do
-			local addedExtensions=""
+			local addedModules=""
 			for content in `dir "$1/$item"`;
 			do
 				if ! [ "$content" == "docker-compose.yml" ] && [[ "$content" == *.yml ]] && [ -f "$1/$item/$content" ]; then
-					addedExtensions+=" -f $content"
+					addedModules+=" -f $content"
 				fi
 			done
-			if [ -n "$addedExtensions" ]; then
-				added_city_extensions[$item]="$addedExtensions"
+			if [ -n "$addedModules" ]; then
+				added_city_modules[$item]="$addedModules"
 			fi
 		done
 	}
 else
 	operateInScope="city"
 	cityrelatedtext="in city '$city'"
-	# list all added extensions for the current city
-	function listAddedExtensions() {
+	# list all added modules for the current city
+	function listAddedModules() {
 		for item in `dir "$1"`;
 		do
-			if [ -f "$1/$item/$extension_dockercompose_city" ]; then
-				added_city_extensions[$item]="-f $extension_dockercompose_city"
+			if [ -f "$1/$item/$module_dockercompose_city" ]; then
+				added_city_modules[$item]="-f $module_dockercompose_city"
 			fi
 		done
 	}
@@ -141,30 +141,30 @@ if [ "$action" = "run" ] || [ "$action" = "up" ]; then
 	action="up --build --detach"
 	unset $2
 elif [ "$action" = "ls" ]; then
-	orangeecho "list the running containers of each extension $cityrelatedtext all at once (nginx will be always included) ..."
+	orangeecho "list the running containers of each module $cityrelatedtext all at once (nginx will be always included) ..."
 	action="ps"
 	customCode="_donothing"
 	customDisplay="_ls"
 elif [ "$action" = "log" ] || [ "$action" = "viewlog" ] ; then
 	redecho "Action '$action' no longer supported..."
-# 	extension="$2"
+# 	module="$2"
 # 	unset $2
-# 	./viewlog $extension $@
+# 	./viewlog $module $@
 # 	exit 0
 fi
 
-listAddedExtensions "extensions" # the directories in 'extensions' represent the names of the extensions
+listAddedModules "modules" # the directories in 'modules' represent the names of the modules
 
-cd extensions
-for extension in ${!added_city_extensions[@]}; do
-	cd "$extension"
+cd modules
+for module in ${!added_city_modules[@]}; do
+	cd "$module"
 	
 	if [ -z "$customCode" ]; then
-		orangeecho "performing desired action '$action' on extension '$extension' $cityrelatedtext ..."
-		#echo "sudo docker-compose -p \"$projectname\" ${added_city_extensions[$extension]} $action"
-		sudo docker-compose -p "$projectname" ${added_city_extensions[$extension]} $action
+		orangeecho "performing desired action '$action' on module '$module' $cityrelatedtext ..."
+		#echo "sudo docker-compose -p \"$projectname\" ${added_city_modules[$module]} $action"
+		sudo docker-compose -p "$projectname" ${added_city_modules[$module]} $action
 	else
-		eval $customCode "${added_city_extensions[$extension]}" "$action"
+		eval $customCode "${added_city_modules[$module]}" "$action"
 	fi
 	
 	cd ../

@@ -4,40 +4,37 @@ source ./lib/colorful
 
 usage() {
 	blueecho "USAGE 1:"
-	blueecho "./add_extension <name of env file> <name of extension>"
-	blueecho "./add_extension Bolivia-Cochabamba otp"
+	blueecho "./add_module <name of env file> <name of module>"
+	blueecho "./add_module Bolivia-Cochabamba otp"
 	blueecho "USAGE 2 (works only when \$enfile has been set e.g. by 'export $enfile=[...]' or by invoking '. ./workas'):"
-	blueecho "./add_extension <name of extension>"
-	blueecho "./add_extension otp"
+	blueecho "./add_module <name of module>"
+	blueecho "./add_module otp"
 }
-
-envname=""
-extname=""
 
 blueecho "1. perform some checks & normalizations"
 source ./lib/validation
 
-extname="${args[0]}"
-extDir="./extensions/$extname"
-## if $extname is empty or $extDir does not exist
-if [ -z $extname ] || ! [ -d "$extDir" ]; then
-	redecho "  Error: You must specify a valid name of an extension to remove from city '$city'">&2
-	echo "  A list of extensions available:"
-	dir ./extensions
+modulename="${args[0]}"
+moduleDir="./modules/$modulename"
+## if $modulename is empty or $moduleDir does not exist
+if [ -z $modulename ] || ! [ -d "$moduleDir" ]; then
+	redecho "  Error: You must specify a valid name of an module to remove from city '$city'">&2
+	echo "  A list of modules available:"
+	dir ./modules
 	exit 1
 fi
 
-blueecho "2. remove the extension"
+blueecho "2. remove the module"
 
-# dataDir="$extDir/data_$city"
+# dataDir="$moduleDir/data_$city"
 # dataDirInactive="$dataDir.inactive"
-ymlFile="$extDir/$city.yml"
+ymlFile="$moduleDir/$city.yml"
 ymlFileInactive="$ymlFile.inactive"
 
 if [ -f "$ymlFile" ]; then
-	orangeecho "   removing extension  '$extname' ( directory '$extDir' ) for city '$city' from city '$city' ..."
+	orangeecho "   removing module  '$modulename' ( directory '$moduleDir' ) for city '$city' from city '$city' ..."
 	
-	cd $extDir
+	cd $moduleDir
 	sudo docker-compose -f "$city.yml" down
 	cd ../../
 	
@@ -48,13 +45,13 @@ if [ -f "$ymlFile" ]; then
 	fi
 	blueecho "   This operation did not remove file '$ymlFile' but set it to 'inactive'!"
 else
-	greenecho "   extension '$extname' for city '$city' already removed. No need to do it again :)"
+	greenecho "   module '$modulename' for city '$city' already removed. No need to do it again :)"
 fi
 
 removeNGINXconf() {
-	if [ -f "./data/nginx/$1/$city/$extname.conf" ]; then
-		orangeecho "   removing nginx configuration of extension '$extname' from nginx city config for '$city'  ..."
-		rm "./data/nginx/$1/$city/$extname.conf" --verbose
+	if [ -f "./data/nginx/$1/$city/$modulename.conf" ]; then
+		orangeecho "   removing nginx configuration of module '$modulename' from nginx city config for '$city'  ..."
+		rm "./data/nginx/$1/$city/$modulename.conf" --verbose
 	fi
 
 	if [ -d "./data/nginx/$1/$city" ] && [ -z `dir "./data/nginx/$1/$city"` ]; then
@@ -74,4 +71,4 @@ if [ "$env" = "production" ]; then
 	removeNGINXconf "intraweb"
 fi
 
-greenecho "removed trufi extension '$extname' from city '$city'"
+greenecho "removed trufi module '$modulename' from city '$city'"

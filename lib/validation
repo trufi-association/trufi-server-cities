@@ -20,8 +20,6 @@ if [ -z "$cityfile" ] && [ "${#args[@]}" = "2" ]; then
 	unset args[0]
 fi
 
-envname=$city
-
 ## if $cityfile contains something but the $city environment variable hasn't been populated
 if [ -n "$cityfile" ] && [ -z "$city" ]; then
 	orangeecho "  invoke '. ./workon' ..."

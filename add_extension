@@ -4,15 +4,13 @@ source ./lib/colorful
 
 usage() {
 	blueecho "USAGE 1:"
-	blueecho "./remove_extension <name of env file> <name of extension>"
-	blueecho "./remove_extension Bolivia-Cochabamba otp"
+	blueecho "./remove_module <name of env file> <name of module>"
+	blueecho "./remove_module Bolivia-Cochabamba otp"
 	blueecho "USAGE 2 (works only when \$enfile has been set e.g. by 'export $enfile=[...]' or by invoking '. ./workas'):"
-	blueecho "./remove_extension <name of extension>"
-	blueecho "./remove_extension otp"
+	blueecho "./remove_module <name of module>"
+	blueecho "./remove_module otp"
 }
 
-envname=""
-extname=""
 nginxcityconf_template_interweb="./nginx/app.dev.conf"
 nginxcityconf_template_intraweb="./nginx/app.intraweb.conf"
 
@@ -22,13 +20,13 @@ MODE_VIRTUALDOMAINS_INDICATOR="./data/nginx/interweb/virtualdomains.conf"
 blueecho "1. perform some checks & normalizations ..."
 source ./lib/validation
 
-extname="${args[0]}"
-extDir="./extensions/$extname"
-## if $extname is empty or $extDir does not exist
-if [ -z $extname ] || ! [ -d "$extDir" ]; then
-	redecho "  Error: You must specify a valid name of an extension to add to city '$city'">&2
-	echo "  A list of extensions available:"
-	dir ./extensions
+modulename="${args[0]}"
+extDir="./modules/$modulename"
+## if $modulename is empty or $extDir does not exist
+if [ -z $modulename ] || ! [ -d "$extDir" ]; then
+	redecho "  Error: You must specify a valid name of an module to add to city '$city'">&2
+	echo "  A list of modules available:"
+	dir ./modules
 	exit 1
 fi
 
@@ -36,7 +34,7 @@ if [ $env = "production" ]; then
 	nginxcityconf_template_interweb="./nginx/app.template.conf"
 fi
 
-blueecho "2. add the extension"
+blueecho "2. add the module"
 
 #dataDir="$extDir/data_$city"
 #dataDirInactive="$dataDir.inactive"
@@ -44,21 +42,21 @@ ymlFile="$extDir/$city.yml"
 ymlFileInactive="$ymlFile.inactive"
 
 if ! [ -f "$ymlFileInactive" ] && ! [ -f "$ymlFile" ]; then
-	orangeecho "   building & adding extension '$extname' ( directory '$extDir' ) for city '$city' ..."
+	orangeecho "   building & adding module '$modulename' ( directory '$extDir' ) for city '$city' ..."
 	envsubst < $extDir/docker-compose.yml > "$ymlFile"
 	if ! [ -f "$ymlFile" ]; then
 		redecho "     Creating & adding operation failed! Do I have write access to '$extDir'?">&2
 		exit 1
 	fi
 elif [ -f "$ymlFileInactive" ]; then
-	orangeecho "   adding extension  '$extname' ( directory '$extDir' ) for city '$city' to city '$city' ..."
+	orangeecho "   adding module  '$modulename' ( directory '$extDir' ) for city '$city' to city '$city' ..."
 	mv "$ymlFileInactive" $ymlFile --verbose
 	if ! [ -f "$ymlFile" ]; then
 		redecho "     Adding failed! Do I have write access to '$ymlFileInactive'?">&2
 		exit 1
 	fi
 else
-	greenecho "   extension '$extname' for city '$city' already added. No need to do it again :)"
+	greenecho "   module '$modulename' for city '$city' already added. No need to do it again :)"
 fi
 
 blueecho "3. add interweb nginx configuration"
@@ -66,34 +64,34 @@ nginxcityconf="./data/nginx/interweb/$city.conf"
 if [ -f "$MODE_VIRTUALDOMAINS_INDICATOR" ]; then
 	greenecho "   no need to add nginx configuration in mode '$MODE_VIRTUALDOMAINS' :)"
 else
-	orangeecho "   adding nginx configuration for '$extname' in city '$city' ..."
+	orangeecho "   adding nginx configuration for '$modulename' in city '$city' ..."
 	nginxcityfolder="./data/nginx/interweb/$city"
 	nginxcityconf="$nginxcityfolder.conf"
-	nginxcityextensionconf="$nginxcityfolder/$extname.conf"
+	nginxcitymoduleconf="$nginxcityfolder/$modulename.conf"
 	if ! [ -d "$nginxcityfolder" ]; then
 		orangeecho "     creating nginx configuration for city '$city' ..."
 		mkdir "$nginxcityfolder"
 	fi
 	if ! [ -f "$nginxcityconf" ]; then
 		orangeecho "     completing nginx configuration for city '$city' ..."
-		sed "s/# extensions/# real domain include location blocks for city '$city'\ninclude \/etc\/nginx\/interweb\/$city\/\*.conf\;/" "$nginxcityconf_template_interweb" | sed "s/example.org/$domain/" > "$nginxcityconf"
+		sed "s/# modules/# real domain include location blocks for city '$city'\ninclude \/etc\/nginx\/interweb\/$city\/\*.conf\;/" "$nginxcityconf_template_interweb" | sed "s/example.org/$domain/" > "$nginxcityconf"
 	fi
 	
 	if ! [ -f "$extDir/nginx.conf" ]; then
-		redecho "     Error: there is no nginx configuration for extension '$extname' available!"
+		redecho "     Error: there is no nginx configuration for module '$modulename' available!"
 		exit 1
 	fi
-	orangeecho "     copying & altering nginx configuration for extension '$extname' to nginx city configuration for '$city' (overwriting if already existing) ..."
-	sed -r "s/http\:\/\/(.+?)\//http\:\/\/\\1_$city\//" "$extDir/nginx.conf" > "$nginxcityextensionconf"
+	orangeecho "     copying & altering nginx configuration for module '$modulename' to nginx city configuration for '$city' (overwriting if already existing) ..."
+	sed -r "s/http\:\/\/(.+?)\//http\:\/\/\\1_$city\//" "$extDir/nginx.conf" > "$nginxcitymoduleconf"
 fi
 
 if [ "$env" = "production" ]; then
 	blueecho "4. add intraweb nginx configuration because we are in production"
-	orangeecho "   adding nginx configuration for '$extname' in city '$city' ..."
+	orangeecho "   adding nginx configuration for '$modulename' in city '$city' ..."
 	nginxcityfolder="./data/nginx/intraweb/$city"
 	nginxcityconf="$nginxcityfolder.conf"
-	nginxcityextensionconf="$nginxcityfolder/$extname.conf"
-	extension_container_name="${extname}_${city}"
+	nginxcitymoduleconf="$nginxcityfolder/$modulename.conf"
+	module_container_name="${modulename}_${city}"
 	if ! [ -d "$nginxcityfolder" ]; then
 		orangeecho "     creating nginx configuration for city '$city' ..."
 		mkdir "$nginxcityfolder"
@@ -104,15 +102,15 @@ if [ "$env" = "production" ]; then
 		echo "include $nginxcityfolder/*.conf" > "$nginxcityconf"
 	fi
 	
-	if ! [ -f "$nginxcityextensionconf" ]; then
-		orangeecho "     adding intraweb server for extension '$extname' in city '$city' ..."
-		sed "s/localhost/$extension_container_name.localhost/" "$nginxcityconf_template_intraweb" | sed "s/\extname_city\/$extension_container_name/" > "$nginxcityextensionconf"
+	if ! [ -f "$nginxcitymoduleconf" ]; then
+		orangeecho "     adding intraweb server for module '$modulename' in city '$city' ..."
+		sed "s/localhost/$module_container_name.localhost/" "$nginxcityconf_template_intraweb" | sed "s/\modulename_city\/$module_container_name/" > "$nginxcitymoduleconf"
 	fi
 fi
 
-greenecho "added trufi extension '$extname' to city '$city'"
+greenecho "added trufi module '$modulename' to city '$city'"
 echo -e "It is available somewhere under the following domains (as far as known to this script):"
 echo -e "- Interweb: \033[0;34m$domain\033[0;m"
 if [ "$env" = "production" ]; then
-	echo -e "- Intraweb: \033[0;34m$extension_container_name.localhost\033[0;m"
+	echo -e "- Intraweb: \033[0;34m$module_container_name.localhost\033[0;m"
 fi
