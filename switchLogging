@@ -1,0 +1,57 @@
+#!/bin/python3
+import yaml, os, sys
+mode = None
+logging = {
+	"driver": "journald",
+	"options": {
+		"tag": "{{.Name}}"
+	}
+}
+
+def orangeprint(text):
+	print("\033[0;33m{}\033[0;m".format(text))
+
+def blueprint(text):
+	print("\033[0;34m{}\033[0;m".format(text))
+
+#def greenprint(text):
+	#print("\033[0;36m{}\033[0;m".format(text))
+	
+def usage():
+	print("USAGE: \033[0;34mswitchLogging\033[0;m on|off")
+
+if len(sys.argv) == 2:
+	mode = sys.argv[1] # 'on' or 'off'
+	
+if not mode == "on" and not mode == "off":
+	usage()
+	sys.exit(1)
+
+def recursiveSearch(curDir="./"):
+	for item in os.listdir(curDir):
+		itemPath = os.path.join(curDir, item)
+		if os.path.isdir(itemPath):
+			recursiveSearch(itemPath)
+		elif item.endswith(".yml") or item.endswith(".yaml"):
+			print("will turn linux logging in compose file '{}' {} ...".format(itemPath, mode))
+			sfile = open(itemPath, "r")
+			dockercompose = yaml.safe_load(sfile.read())
+			sfile.close()
+			
+			for service in dockercompose["services"]:
+				orangeprint("  modifying service '{}' ...".format(service))
+				if mode == "off":
+					if "logging" in dockercompose["services"][service]:
+						orangeprint("    removing logging part ...")
+						del dockercompose["services"][service]["logging"]
+					else:
+						blueprint("    not necessary!")
+				elif mode == "on":
+					orangeprint("    adding logging part (overwriting if already existing) ...")
+					dockercompose["services"][service]["logging"] = logging
+			
+			sfile = open(itemPath, "w")
+			sfile.write(yaml.dump(dockercompose, sort_keys=False, default_flow_style=False))
+			sfile.close()
+
+recursiveSearch()
