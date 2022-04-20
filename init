@@ -157,43 +157,36 @@ else
 	exit 1
 fi
 
+blueecho "4. Save & load configuration"
+# save
+echo "env=\"$environment\"
+curmode=\"$CURMODE\"">"./data/instance.conf"
+# load
+source ./lib/env
+
+blueecho "5. NGINX configuration"
 orangeecho "   preparing nginx configuration ..."
+dest="./data/nginx/interweb/virtualdomains.conf"
 if ! [ -f "$dest" ] && [ "$CURMODE" = "$MODE_VIRTUALDOMAINS" ]; then
-	greenecho "     doing something with nginx configurations before adding a city is not necessary. Skipping this step!"
-# 	dest="./data/nginx/interweb/virtualdomains.conf"
-# 	orangeecho "     copying '$nginxconf' to '$dest' ..."
-# 	destcontent=`sed "s/# extensions/# virtal domain location block\n$virtualdomains_locationblock/" $nginxconf`
-# 	errorcode=$?
-# 	
-# 	if [ $errorcode -gt 0 ] && ! [ -f "$dest" ]; then
-# 		echo -e "\033[0;31mError: could not copy '$src' to '$dest'. Please check the following:
-# 	- write access to the destination './data/nginx'
-# 	- that the 'sed' command worked
-# 	- if the original file '$nginxconf' exists\033[0;m">&2
-# 		exit 1
-# 	fi
-# 	
-# 	if [ "$enviroment" = "production" ]; then
-# 		echo "Please tell me the domain name. This can be changed later by editing the '$dest' file"
-# 		read decision
-# 		orangeecho "     Setting domain '$decision' ..."
-# 		destcontent=`echo "$destcontent" | sed "s/example.org/$decision/"`
-# 		domain="$decision"
-# 	else
-# 		orangeecho "     Setting domain 'localhost' since we are in 'development' mode (this can be changed later by editing the '$dest' file) ..."
-# 		destcontent=`echo "$destcontent" | sed "s/example.org/localhost/"`
-# 		domain="localhost"
-# 	fi
-# 	
-# 	echo "$destcontent">$dest
+	#greenecho "     doing something with nginx configurations before adding a city is not necessary. Skipping this step!"
+
+	if [ "$enviroment" = "production" ]; then
+		echo "Please tell me the domain name. This can be changed later by editing the '$dest' file"
+		read decision
+		orangeecho "     Setting domain '$decision' ..."
+		destcontent=`echo "$destcontent" | sed "s/example.org/$decision/"`
+		domain="$decision"
+	else
+		orangeecho "     Setting domain 'localhost' since we are in 'development' mode (this can be changed later by editing the '$dest' file) ..."
+		destcontent=`echo "$destcontent" | sed "s/example.org/localhost/"`
+		domain="localhost"
+	fi
+	orangeecho "     adding $environment virtual server ..."
+	sed "s/# modules/# modules of all cities all using this single virtual server configuration\ninclude \/etc\/nginx\/interweb\/*\/\*.conf\;/" "$nginxcityconf_template_interweb" | sed "s/example.org/$domain/g" > "$dest"
 
 elif [ "$CURMODE" = "$MODE_REALDOMAINS" ]; then
 	greenecho "     doing something with nginx configurations before adding a city is not necessary. Skipping this step!"
 fi
-
-# write settings to file
-echo "env=\"$environment\"
-curmode=\"$CURMODE\"">"./data/instance.conf"
 
 
 greenecho "#################### END ################################"

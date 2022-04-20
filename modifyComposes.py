@@ -9,24 +9,20 @@ def orangeprint(text):
 
 modulesPath="modules"
 
-#for path in ["trufi-server", "trufi-server-cities"]:
-	#if os.path.exists(path):
-		#modulesPath = os.path.join(path, "modules")
-
-if modulesPath == "":
+if not os.path.exists(modulesPath):
 	redprint("Error: init script not executed properly")
 	sys.exit(1)
 
 orangeprint("patching modules ...")
 for ext in os.listdir(modulesPath):
 	extDir = os.path.join(modulesPath, ext)
-	orangeprint("  modifying module '{}' ('{}') ...".format(ext, extDir))
 	if os.path.exists(os.path.join(extDir, "data")):
 		print("    renaming directory 'data' to 'data_template' ...")
 		os.rename(os.path.join(extDir, "data"), os.path.join(extDir, "data_template"))
 		
 	composefile = os.path.join(extDir, "docker-compose.yml")
 	if os.path.exists(composefile):
+		orangeprint("  modifying module '{}' ('{}') ...".format(ext, extDir))
 		sfile = open(composefile, "r")
 		dockercompose = yaml.safe_load(sfile.read())
 		sfile.close()
@@ -34,16 +30,17 @@ for ext in os.listdir(modulesPath):
 		
 		servicesToRename = []
 		for service in dockercompose["services"]:
-			servicesToRename.append(service)
+			if not service.endswith("_$city"):
+				servicesToRename.append(service)
 			print("    service '{}'".format(service))
 			if "volumes" in dockercompose["services"][service]:
-				print("      volume configuration ...")
 				for index, content in enumerate(dockercompose["services"][service]["volumes"]):
 					volumeConf = content.split(":", 1)
 					hostVolumePart = volumeConf[0]
 					del volumeConf[0]
 					normalize = hostVolumePart.lower().replace("./", "").replace("/", "")
 					if "data" == normalize:
+						print("      volume configuration ...")
 						dockercompose["services"][service]["volumes"][index] = hostVolumePart.replace("data", "data_$city") + ":" + ":".join(volumeConf)
 			if "ports" in dockercompose["services"][service]:
 				print("      remove port binding ...")

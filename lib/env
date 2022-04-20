@@ -5,6 +5,15 @@ source "$instanceConfigPath"
 
 MODE_REALDOMAINS="real domains"
 MODE_VIRTUALDOMAINS="virtual domains"
+NGINX_CONFIGPATH_PRODSERVER="./nginx/app.template.conf"
+NGINX_CONFIGPATH_DEVSERVER="./nginx/app.dev.conf"
+
+if [ "$env" = "production" ]; then
+	nginxcityconf_template_interweb="$NGINX_CONFIGPATH_PRODSERVER"
+else
+	nginxcityconf_template_interweb="$NGINX_CONFIGPATH_DEVSERVER"
+fi
+nginxcityconf_template_intraweb="./nginx/app.intraweb.conf"
 
 #MODE_VIRTUALDOMAINS_INDICATOR="./data/nginx/interweb/virtualdomains.conf"
 #ENV_PROD_INDICATOR="./data/.production"

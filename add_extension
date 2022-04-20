@@ -12,9 +12,6 @@ usage() {
 	blueecho "./remove_module otp"
 }
 
-nginxcityconf_template_interweb="./nginx/app.dev.conf"
-nginxcityconf_template_intraweb="./nginx/app.intraweb.conf"
-
 blueecho "1. perform some checks & normalizations ..."
 source ./lib/validation
 
@@ -26,10 +23,6 @@ if [ -z $modulename ] || ! [ -d "$extDir" ]; then
 	echo "  A list of modules available:"
 	dir ./modules
 	exit 1
-fi
-
-if [ $env = "production" ]; then
-	nginxcityconf_template_interweb="./nginx/app.template.conf"
 fi
 
 blueecho "2. add the module"
@@ -89,7 +82,7 @@ else
 		orangeecho "     creating nginx configuration for city '$city' ..."
 		mkdir "$nginxcityfolder"
 	fi
-	if ! [ -f "$nginxcityconf" ]; then
+	if ! [ "$curmode" = "$MODE_VIRTUALDOMAINS" ] && ! [ -f "$nginxcityconf" ]; then
 		orangeecho "     completing nginx configuration for city '$city' ..."
 		if [ "$curmode" = "$MODE_VIRTUALDOMAINS" ]; then
 			echo "include /etc/nginx/interweb/$city/*.conf;" > "$nginxcityconf"
@@ -100,9 +93,6 @@ else
 	orangeecho "     copying & altering nginx configuration for module '$modulename' to nginx city configuration for '$city' (overwriting if already existing) ..."
 	modulenginxconf_content=`echo "$modulenginxconf_content" | sed -r "s/http\:\/\/(.+?)\//http\:\/\/\\1_$city\//g" # "$extDir/nginx.conf" # > "$nginxcitymoduleconf"`
 	if [ "$curmode" = "$MODE_VIRTUALDOMAINS" ]; then
-		echo "$modulenginxconf_content"
-		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-		echo "$modulenginxconf_content" | sed -E "s/location \/(.+?)/location $city\/\1/g" | sed -E "s/return (.+?) \/(.*?)/return \/$city\/\2/g"
 		modulenginxconf_content=`echo "$modulenginxconf_content" | sed -E "s/location \/(.+?)/location \/$city\/\1/g" | sed -E "s/return (.+?) \/(.*?)/return \1 \/$city\/\2/g"` # bug
 	fi
 	echo "$modulenginxconf_content" > "$nginxcitymoduleconf"
