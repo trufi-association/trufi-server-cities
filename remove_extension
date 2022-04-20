@@ -24,7 +24,7 @@ if [ -z $modulename ] || ! [ -d "$moduleDir" ]; then
 	exit 1
 fi
 
-blueecho "2. remove the module"
+blueecho "2. deactivate the module"
 
 # dataDir="$moduleDir/data_$city"
 # dataDirInactive="$dataDir.inactive"
@@ -32,7 +32,7 @@ ymlFile="$moduleDir/$city.yml"
 ymlFileInactive="$ymlFile.inactive"
 
 if [ -f "$ymlFile" ]; then
-	orangeecho "   removing module  '$modulename' ( directory '$moduleDir' ) for city '$city' from city '$city' ..."
+	orangeecho "   setting module  '$modulename' ( directory '$moduleDir' ) for city '$city' from city '$city' to inactive ..."
 	
 	cd $moduleDir
 	sudo docker-compose -f "$city.yml" down
@@ -40,12 +40,12 @@ if [ -f "$ymlFile" ]; then
 	
 	mv "$ymlFile" "$ymlFileInactive" --verbose
 	if ! [ -f "$ymlFileInactive" ]; then
-		redecho "   Removing failed! Do I have write access to '$ymlFile'?">&2
+		redecho "   Deactivation failed! Do I have write access to '$ymlFile'?">&2
 		exit 1
 	fi
 	blueecho "   This operation did not remove file '$ymlFile' but set it to 'inactive'!"
 else
-	greenecho "   module '$modulename' for city '$city' already removed. No need to do it again :)"
+	greenecho "   module '$modulename' for city '$city' already set to inactive. No need to do it again :)"
 fi
 
 removeNGINXconf() {
