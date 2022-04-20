@@ -168,8 +168,6 @@ blueecho "5. NGINX configuration"
 orangeecho "   preparing nginx configuration ..."
 dest="./data/nginx/interweb/virtualdomains.conf"
 if ! [ -f "$dest" ] && [ "$CURMODE" = "$MODE_VIRTUALDOMAINS" ]; then
-	#greenecho "     doing something with nginx configurations before adding a city is not necessary. Skipping this step!"
-
 	if [ "$enviroment" = "production" ]; then
 		echo "Please tell me the domain name. This can be changed later by editing the '$dest' file"
 		read decision
@@ -188,6 +186,8 @@ elif [ "$CURMODE" = "$MODE_REALDOMAINS" ]; then
 	greenecho "     doing something with nginx configurations before adding a city is not necessary. Skipping this step!"
 fi
 
+orangeecho "   generating 4096bit dhparam ..."
+openssl dhparam -out ./data/nginx/conf.d/inc/dhparam.pem 4096
 
 greenecho "#################### END ################################"
 greenecho "[DONE]   Setup for '$name'   "
