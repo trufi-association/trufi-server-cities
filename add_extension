@@ -98,8 +98,8 @@ else
 	echo "$modulenginxconf_content" > "$nginxcitymoduleconf"
 fi
 
-if [ "$env" = "production" ]; then
-	blueecho "4. add intraweb nginx configuration because we are in production"
+if [ "$intraweb" = "yes" ]; then
+	blueecho "4. add intraweb nginx configuration ..."
 	orangeecho "   adding nginx configuration for '$modulename' in city '$city' ..."
 	nginxcityfolder="./data/nginx/intraweb/$city"
 	nginxcityconf="$nginxcityfolder.conf"

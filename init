@@ -97,10 +97,12 @@ if [ $decision = "prod" ]; then
 	environment="production"
 	ENVIRONMENT="PRODUCTION"
 	nginxconf="./nginx/app.template.conf"
+	intraweb="yes"
 elif [ $decision = "dev" ]; then
 	environment="development"
 	ENVIRONMENT="DEVELOPMENT"
 	nginxconf="./nginx/app.dev.conf"
+	intraweb="no"
 else
 	redecho "Error: invalid input"
 	exit 1
@@ -160,7 +162,8 @@ fi
 blueecho "4. Save & load configuration"
 # save
 echo "env=\"$environment\"
-curmode=\"$CURMODE\"">"./data/instance.conf"
+curmode=\"$CURMODE\""
+intraweb=\"$intraweb\">"./data/instance.conf"
 # load
 source ./lib/env
 
@@ -194,8 +197,9 @@ greenecho "[DONE]   Setup for '$name'   "
 greenecho "#################### END ################################"
 echo
 greenecho "Current configuration:"
-echo "Environment: $environment"
-echo "Mode       : $CURMODE"
-echo "Domain     : $domain"
+echo "Environment       : $environment"
+echo "Mode              : $CURMODE"
+echo "Domain            : $domain"
+echo "Intraweb activated: $intraweb"
 echo "Ability to host services for multiple cities"
 echo
