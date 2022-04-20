@@ -1,2 +1,5 @@
 trufi-server-modules
 modules
+data/nginx/interweb
+data/nginx/intraweb
+data/instance.conf

@@ -1,5 +1,7 @@
 #!/bin/bash 
 
+source ./lib/env
+
 redecho() {
 	echo -e "\033[1;31m$1\033[0;m"
 }
@@ -55,16 +57,8 @@ if ! [ -z "$cityfile" ]; then
 	done
 fi
 
-mode="real domains"
-env="dev"
-if [ -f "./data/nginx/virtualdomains.conf" ]; then
-	mode="virtual domains"
-fi
-if [ -d "./data/.production" ]; then
-	env="prod"
-fi
 orangeecho "modifying prompt ..."
-export PS1="\033[0;32m$city@$env\033[0;34m (MODE '$mode')\033[0;m $ "
+export PS1="\033[0;32m$city@$env\033[0;34m (MODE '$curmode')\033[0;m $ "
 orangeecho "adding command aliases ..."
 alias add="./add_extension"
 alias remove="./remove_extension"

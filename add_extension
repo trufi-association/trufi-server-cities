@@ -1,21 +1,19 @@
 #!/bin/bash
 
 source ./lib/colorful
+source ./lib/env
 
 usage() {
 	blueecho "USAGE 1:"
 	blueecho "./remove_module <name of env file> <name of module>"
 	blueecho "./remove_module Bolivia-Cochabamba otp"
-	blueecho "USAGE 2 (works only when \$enfile has been set e.g. by 'export $enfile=[...]' or by invoking '. ./workas'):"
+	blueecho "USAGE 2 (works only when \$cityfile has been set e.g. by 'export $cityfile=[...]' or by invoking '. ./workas'):"
 	blueecho "./remove_module <name of module>"
 	blueecho "./remove_module otp"
 }
 
 nginxcityconf_template_interweb="./nginx/app.dev.conf"
 nginxcityconf_template_intraweb="./nginx/app.intraweb.conf"
-
-MODE_VIRTUALDOMAINS="virtual domains"
-MODE_VIRTUALDOMAINS_INDICATOR="./data/nginx/interweb/virtualdomains.conf"
 
 blueecho "1. perform some checks & normalizations ..."
 source ./lib/validation
@@ -36,8 +34,6 @@ fi
 
 blueecho "2. add the module"
 
-#dataDir="$extDir/data_$city"
-#dataDirInactive="$dataDir.inactive"
 ymlFile="$extDir/$city.yml"
 ymlFileInactive="$ymlFile.inactive"
 
@@ -61,28 +57,55 @@ fi
 
 blueecho "3. add interweb nginx configuration"
 nginxcityconf="./data/nginx/interweb/$city.conf"
-if [ -f "$MODE_VIRTUALDOMAINS_INDICATOR" ]; then
+if [ "$mode" = "$MODE_VIRTUALDOMAINS" ]; then
 	greenecho "   no need to add nginx configuration in mode '$MODE_VIRTUALDOMAINS' :)"
 else
 	orangeecho "   adding nginx configuration for '$modulename' in city '$city' ..."
 	nginxcityfolder="./data/nginx/interweb/$city"
 	nginxcityconf="$nginxcityfolder.conf"
 	nginxcitymoduleconf="$nginxcityfolder/$modulename.conf"
+	modulenginxconf="$extDir/nginx.conf"
+	
+	if ! [ -f "$modulenginxconf" ]; then
+		redecho "     Error: there is no nginx configuration for module '$modulename' available!"
+		echo "I can create a default reverse proxy configuration for you but then interweb users will be able to access all resources the module '$modulename' for city '$city' exposes through its HTTP endpoint. This can be a security thread in some circumstances as it can make functions publicly accessible you normally do not want to be. There is also the eventually that this just does not work"
+		echo "Create default reverse proxy (full expose of the module for city to the public) [y|n]"
+		read $decision
+		if [ "$decision" = "y" ]; then
+			orangeecho "     creating default proxy configuration for module '$modulename' of city '$city' (not recommended) ..."
+			modulenginxconf_content="location / {
+			proxy_pass http://$modulename/ ;
+}"
+			blueecho "       make sure it works as it cannot be guaranteed"
+		else
+			redecho "Aborting as a reverse proxy configuration for module '$modulename' of city '$city' is necessary! Fix this and run this script again"
+			exit 1
+		fi
+		
+	fi
+	
+	modulenginxconf_content=`cat "$extDir/nginx.conf"`
 	if ! [ -d "$nginxcityfolder" ]; then
 		orangeecho "     creating nginx configuration for city '$city' ..."
 		mkdir "$nginxcityfolder"
 	fi
 	if ! [ -f "$nginxcityconf" ]; then
 		orangeecho "     completing nginx configuration for city '$city' ..."
-		sed "s/# modules/# real domain include location blocks for city '$city'\ninclude \/etc\/nginx\/interweb\/$city\/\*.conf\;/" "$nginxcityconf_template_interweb" | sed "s/example.org/$domain/" > "$nginxcityconf"
-	fi
-	
-	if ! [ -f "$extDir/nginx.conf" ]; then
-		redecho "     Error: there is no nginx configuration for module '$modulename' available!"
-		exit 1
+		if [ "$curmode" = "$MODE_VIRTUALDOMAINS" ]; then
+			echo "include /etc/nginx/interweb/$city/*.conf;" > "$nginxcityconf"
+		else
+			sed "s/# modules/# real domain include location blocks for city '$city'\ninclude \/etc\/nginx\/interweb\/$city\/\*.conf\;/" "$nginxcityconf_template_interweb" | sed "s/example.org/$domain/g" > "$nginxcityconf"
+		fi
 	fi
 	orangeecho "     copying & altering nginx configuration for module '$modulename' to nginx city configuration for '$city' (overwriting if already existing) ..."
-	sed -r "s/http\:\/\/(.+?)\//http\:\/\/\\1_$city\//" "$extDir/nginx.conf" > "$nginxcitymoduleconf"
+	modulenginxconf_content=`echo "$modulenginxconf_content" | sed -r "s/http\:\/\/(.+?)\//http\:\/\/\\1_$city\//g" # "$extDir/nginx.conf" # > "$nginxcitymoduleconf"`
+	if [ "$curmode" = "$MODE_VIRTUALDOMAINS" ]; then
+		echo "$modulenginxconf_content"
+		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+		echo "$modulenginxconf_content" | sed -E "s/location \/(.+?)/location $city\/\1/g" | sed -E "s/return (.+?) \/(.*?)/return \/$city\/\2/g"
+		modulenginxconf_content=`echo "$modulenginxconf_content" | sed -E "s/location \/(.+?)/location \/$city\/\1/g" | sed -E "s/return (.+?) \/(.*?)/return \1 \/$city\/\2/g"` # bug
+	fi
+	echo "$modulenginxconf_content" > "$nginxcitymoduleconf"
 fi
 
 if [ "$env" = "production" ]; then
@@ -104,7 +127,7 @@ if [ "$env" = "production" ]; then
 	
 	if ! [ -f "$nginxcitymoduleconf" ]; then
 		orangeecho "     adding intraweb server for module '$modulename' in city '$city' ..."
-		sed "s/localhost/$module_container_name.localhost/" "$nginxcityconf_template_intraweb" | sed "s/\modulename_city\/$module_container_name/" > "$nginxcitymoduleconf"
+		sed "s/localhost/$module_container_name.localhost/g" "$nginxcityconf_template_intraweb" | sed "s/\modulename_city\/$module_container_name/g" > "$nginxcitymoduleconf"
 	fi
 fi
 

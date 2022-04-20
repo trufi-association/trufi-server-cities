@@ -1,15 +1,17 @@
 #!/bin/bash
 
-env="development"
+instanceConfigPath="./data/instance.conf"
+source "$instanceConfigPath"
 
 MODE_REALDOMAINS="real domains"
 MODE_VIRTUALDOMAINS="virtual domains"
-CURMODE=""
 
-MODE_VIRTUALDOMAINS_INDICATOR="./data/nginx/interweb/virtualdomains.conf"
-ENV_PROD_INDICATOR="./data/.production"
-ENV_DEV_INDICATOR="./data/.development"
+#MODE_VIRTUALDOMAINS_INDICATOR="./data/nginx/interweb/virtualdomains.conf"
+#ENV_PROD_INDICATOR="./data/.production"
+#ENV_DEV_INDICATOR="./data/.development"
 
-if [ -d "$ENV_PROD_INDICATOR" ]; then
-	env="production"
-fi
+# 
+# 
+# if [ -d "$ENV_PROD_INDICATOR" ]; then
+# 	env="production"
+# fi
