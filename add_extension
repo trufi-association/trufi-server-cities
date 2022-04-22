@@ -112,12 +112,12 @@ if [ "$intraweb" = "yes" ]; then
 	
 	if ! [ -f "$nginxcityconf" ]; then
 		orangeecho "     completing nginx configuration for city '$city' ..."
-		echo "include $nginxcityfolder/*.conf" > "$nginxcityconf"
+		echo "include $nginxcityfolder/*.conf ;" > "$nginxcityconf"
 	fi
 	
 	if ! [ -f "$nginxcitymoduleconf" ]; then
 		orangeecho "     adding intraweb server for module '$modulename' in city '$city' ..."
-		sed "s/localhost/$module_container_name.localhost/g" "$nginxcityconf_template_intraweb" | sed "s/\modulename_city\/$module_container_name/g" > "$nginxcitymoduleconf"
+		sed -E "s/localhost/$module_container_name.localhost/" "$nginxcityconf_template_intraweb" | sed "s/modulename_city/$module_container_name/" > "$nginxcitymoduleconf"
 	fi
 fi
 

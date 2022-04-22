@@ -80,11 +80,12 @@ mv $module_dir $module_dir_renamed
 module_dir=$module_dir_renamed
 
 orangeecho "   removing incompactible modules ..."
-incompactibleModules=( "nginx" )
-for module in ${incompactibleModules[@]}; do
-	orangeecho "     $module ..."
-	rm -R "$module_dir/$module"
-done
+rm -r $module_dir/nginx-*
+# incompactibleModules=( "nginx" )
+# for module in ${incompactibleModules[@]}; do
+# 	orangeecho "     $module ..."
+# 	rm -R "$module_dir/$module"
+# done
 
 python3 modifyComposes.py
 
@@ -162,8 +163,8 @@ fi
 blueecho "4. Save & load configuration"
 # save
 echo "env=\"$environment\"
-curmode=\"$CURMODE\""
-intraweb=\"$intraweb\">"./data/instance.conf"
+curmode=\"$CURMODE\"
+intraweb=\"$intraweb\"">"./data/instance.conf"
 # load
 source ./lib/env
 
@@ -190,7 +191,7 @@ elif [ "$CURMODE" = "$MODE_REALDOMAINS" ]; then
 fi
 
 orangeecho "   generating 4096bit dhparam ..."
-openssl dhparam -out ./data/nginx/conf.d/inc/dhparam.pem 4096
+#openssl dhparam -out ./data/nginx/inc/dhparam.pem 4096
 
 greenecho "#################### END ################################"
 greenecho "[DONE]   Setup for '$name'   "

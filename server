@@ -192,7 +192,7 @@ if [ -z "$customCode" ]; then
 		blueecho "Not turning down 'nginx' as this is what running containers from other cities depend on!"
 	else
 		orangeecho "performing desired action '$action' on docker-compose.yml $appendTXT..."
-		sudo docker-compose -p "$projectname" -f "docker-compose.yml" --env-file ./$cityfile $action
+		sudo docker-compose -p "$projectname" -f "docker-compose.yml" $action
 	fi
 else
 	eval $customCode $action

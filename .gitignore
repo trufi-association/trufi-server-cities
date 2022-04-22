@@ -3,3 +3,8 @@ modules
 data/nginx/interweb
 data/nginx/intraweb
 data/instance.conf
+data/nginx/inc/*.pem
+data/logs
+data/letsencrypt
+data/maps
+data/certbot
