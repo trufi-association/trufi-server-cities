@@ -112,7 +112,7 @@ if [ "$intraweb" = "yes" ]; then
 	
 	if ! [ -f "$nginxcityconf" ]; then
 		orangeecho "     completing nginx configuration for city '$city' ..."
-		echo "include $nginxcityfolder/*.conf ;" > "$nginxcityconf"
+		echo "include /etc/nginx/intraweb/$city/*.conf ;" > "$nginxcityconf"
 	fi
 	
 	if ! [ -f "$nginxcitymoduleconf" ]; then
