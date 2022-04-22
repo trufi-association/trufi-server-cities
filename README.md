@@ -118,7 +118,7 @@ e.g.
 
 #### Module management
 
-- **To add an module to the run configuration**
+- **To add an module to the run configuration (does not start it automatically)**
   - Command: `add_module <name of city> <module name>` 
   - Example: `add_module "Bolivia-Cochabamba" otp`
   - Example (using `workon` script): `add_module otp`
@@ -162,6 +162,10 @@ server up # will bring all added modules in city 'Germany-Hamburg' up (scope 'ci
   - Command: `server <name of city> restart`
 - **To stop the server**
   - Command: `server <name of city> stop`
+- **To perform actions on the nginx (web server) only**
+  - Command: `server nginx <action>`
+  - Restart nginx after manual configuration change: `server nginx restart`
+
 - **To view a list of running modules**
   - Command: `server <name of city> ls` (filtered Trufi optimised result for `docker container ls` command)
   - Command: `server <name of city> ps` (native docker-compose command for every single module)

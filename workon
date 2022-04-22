@@ -60,11 +60,11 @@ fi
 orangeecho "modifying prompt ..."
 export PS1="\033[0;32m$city@$env\033[0;34m (MODE '$curmode')\033[0;m $ "
 orangeecho "adding command aliases ..."
-alias add="./add_extension"
-alias remove="./remove_extension"
+alias add="./add_module"
+alias remove="./remove_module"
 alias server="./server"
 alias viewlog="./viewlog"
-alias restart="./restart_extension"
+alias restart="./restart_module"
 alias workon=". ./workon"
 alias close="echo -e \"\033[1;33mChanging prompt back ...\033[0;m\" ;
 export PS1=\"$defaultPS1\";
@@ -85,11 +85,11 @@ echo '--------------------------------------------------------------------------
 echo 
 echo -e "\033[1;34mCommand list:\033[0;m"
 echo -e "\033[0;34mclose\033[0;m        get the prompt and the environment reverted back."
-echo -e "\033[0;34madd\033[0;m          alias to \033[0;36m./add_extension\033[0;m"
-echo -e "\033[0;34mremove\033[0;m       alias to \033[0;36m./remove_extension\033[0;m"
+echo -e "\033[0;34madd\033[0;m          alias to \033[0;36m./add_module\033[0;m"
+echo -e "\033[0;34mremove\033[0;m       alias to \033[0;36m./remove_module\033[0;m"
 echo -e "\033[0;34mserver\033[0;m       alias to \033[0;36m./server\033[0;m"
 echo -e "\033[0;34mviewlog\033[0;m      alias to \033[0;36m./viewlog\033[0;m"
-echo -e "\033[0;34mrestart\033[0;m      alias to \033[0;36m./restart_extension\033[0;m"
+echo -e "\033[0;34mrestart\033[0;m      alias to \033[0;36m./restart_module\033[0;m"
 echo -e "\033[0;34mworkon\033[0;m       alias to \033[0;36m. ./workon\033[0;m (this script)"
 echo "other commands work as expected"
 echo

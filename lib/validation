@@ -5,22 +5,15 @@ args=( $@ )
 source ./lib/env
 
 # validations
-## if $cityfile is empty and the user specified less than two arguments
-# if [ -z "$cityfile" ] && [ ${#args[@]} -lt 2 ]; then
-# 	redecho "  Insufficient arguments.">&2
-# 	usage
-# 	exit 1
-# 	
-# fi
 
-## if $cityfile is empty but the user specified two arguments
+## if $cityfile is empty but a valid city configuration name has been provided
 if [ -z "$cityfile" ] && [ -f "./config/${args[0]/".env"/""}.env" ]; then
 	envname=${args[0]//".env"/""}
 	export cityfile="./config/$envname.env"
 	
 	# remove elem on first index
 	unset args[0]
-	args=`echo "${args[@]}"`
+	args=( `echo "${args[@]}"` )
 fi
 
 ## if $cityfile contains something but the $city environment variable hasn't been populated

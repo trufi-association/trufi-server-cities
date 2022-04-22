@@ -41,11 +41,13 @@ module_dockercompose_city="$city.yml"
 
 body=()
 projectname=`basename "$PWD"`
-action="$1"
+action="${args[0]}"
 customCode=""
 customDisplay=""
 
-unset $1
+# remove elem from array 'args' on first index
+unset args[0]
+args=( `echo "${args[@]}"` )
 
 # if the first argument is a valid city configuration file and provided in the form 'Country-City' or 'Country-City.env'
 if [ -f "./config/${args[0]/'.env'/''}.env" ]; then # export the variables in the city configuration file
@@ -53,16 +55,11 @@ if [ -f "./config/${args[0]/'.env'/''}.env" ]; then # export the variables in th
 fi
 
 if [ -z "$city" ]; then
-	echo "operating in global scope because no city configuration were specified. Commands affect all added modules in all cities"
-	maxcount=6
-	for i in {1..5}; do
-		echo -ne "\033[0;36mexecuting command '$action' in $((maxcount - i))\033[0K\r\033[0;m" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
-		sleep 1
-	done
+	echo "No city configuration specified! Action '$action' will be applied to all added modules in all cities."
 	operateInScope="global"
 	cityrelatedtext="in all cities"
 	# list all added modules in all cities
-	function listAddedModules() {
+	listAddedModules() {
 		for item in `dir "$1"`;
 		do
 			local addedModules=""
@@ -81,7 +78,7 @@ else
 	operateInScope="city"
 	cityrelatedtext="in city '$city'"
 	# list all added modules for the current city
-	function listAddedModules() {
+	listAddedModules() {
 		for item in `dir "$1"`;
 		do
 			if [ -f "$1/$item/$module_dockercompose_city" ]; then
@@ -136,6 +133,15 @@ if ! [ "$operateInScope" = "global" ]; then
 	source ./lib/validation
 fi
 
+# if action 'nginx' specified then overwrite normal behaviour of this script
+if [ "$action" = "nginx" ]; then
+	blueecho "will only operate on 'nginx'"
+	action="${args[@]}"
+	listAddedModules() {
+		true
+	}
+fi
+
 if [ "$action" = "run" ] || [ "$action" = "up" ]; then
 	orangeecho "deprefixing command to a valid docker-compose command ..."
 	action="up --build --detach"
@@ -147,10 +153,6 @@ elif [ "$action" = "ls" ]; then
 	customDisplay="_ls"
 elif [ "$action" = "log" ] || [ "$action" = "viewlog" ] ; then
 	redecho "Action '$action' no longer supported..."
-# 	module="$2"
-# 	unset $2
-# 	./viewlog $module $@
-# 	exit 0
 fi
 
 listAddedModules "modules" # the directories in 'modules' represent the names of the modules
@@ -166,10 +168,11 @@ for module in ${!added_city_modules[@]}; do
 	else
 		eval $customCode "${added_city_modules[$module]}" "$action"
 	fi
-	
+
 	cd ../
 done
 cd ../
+
 
 if [ -z "$customCode" ]; then
 	appendTXT=""
@@ -183,7 +186,7 @@ if [ -z "$customCode" ]; then
 	#    sudo docker container ls                              - List all running containers on this system
 	#                             grep "$projectname"          - only show running containers containing $projectname in their name
 	#                                                  wc -l   - count the lines returned by the last command
-	
+
 	# sudo docker-compose -f "docker-compose.yml" ps -q | wc -l`   - Get running containers belonging to "docker-compose.yml" and count them
 	#    sudo docker-compose -f "docker-compose.yml" ps -q         - Get the ids of the containers belonging to "docker-compose.yml"
 	#                                                 wc -l    - count the lines returned by the last command
