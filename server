@@ -53,7 +53,7 @@ if [ -f "./config/${args[0]/'.env'/''}.env" ]; then # export the variables in th
 fi
 
 if [ -z "$city" ]; then
-	echo "operating in global scope because no city configuration were found. Commands affect all added modules in all cities"
+	echo "operating in global scope because no city configuration were specified. Commands affect all added modules in all cities"
 	maxcount=6
 	for i in {1..5}; do
 		echo -ne "\033[0;36mexecuting command '$action' in $((maxcount - i))\033[0K\r\033[0;m" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
