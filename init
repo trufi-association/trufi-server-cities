@@ -8,6 +8,8 @@ module_url="https://github.com/trufi-association/trufi-server-modules"
 module_dir="./trufi-server-modules"
 module_dir_renamed="modules"
 
+hostname=`hostname`
+
 if [ -z `which git` ]; then
 	echo -e "\033[1;31mError: 'git' is missing on this system. Please install it as it is a requirement!\033[0;m">$2
 	exit 1
@@ -179,9 +181,9 @@ if ! [ -f "$dest" ] && [ "$CURMODE" = "$MODE_VIRTUALDOMAINS" ]; then
 		destcontent=`echo "$destcontent" | sed "s/example.org/$decision/"`
 		domain="$decision"
 	else
-		orangeecho "     Setting domain 'localhost' since we are in 'development' mode (this can be changed later by editing the '$dest' file) ..."
-		destcontent=`echo "$destcontent" | sed "s/example.org/localhost/"`
-		domain="localhost"
+		orangeecho "     Setting domain '$hostname' since we are in 'development' mode (this can be changed later by editing the '$dest' file) ..."
+		destcontent=`echo "$destcontent" | sed "s/example.org/$hostname/"`
+		domain="$hostname"
 	fi
 	orangeecho "     adding $environment virtual server ..."
 	sed "s/# modules/# modules of all cities all using this single virtual server configuration\ninclude \/etc\/nginx\/interweb\/*\/\*.conf\;/" "$nginxcityconf_template_interweb" | sed "s/example.org/$domain/g" > "$dest"
@@ -190,7 +192,7 @@ elif [ "$CURMODE" = "$MODE_REALDOMAINS" ]; then
 	greenecho "     doing something with nginx configurations before adding a city is not necessary. Skipping this step!"
 fi
 
-orangeecho "   generating 4096bit dhparam ..."
+#orangeecho "   generating 4096bit dhparam ..."
 #openssl dhparam -out ./data/nginx/inc/dhparam.pem 4096
 
 greenecho "#################### END ################################"
