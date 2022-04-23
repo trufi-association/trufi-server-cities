@@ -140,6 +140,12 @@ if [ "$action" = "nginx" ]; then
 	listAddedModules() {
 		true
 	}
+	if [ "$action" = "reload" ]; then
+		orangeecho "reloading nginx configuration without the need to restart nginx ..."
+		sudo docker-compose -p "$projectname" -f "docker-compose.yml" exec nginx nginx -s reload
+		greenecho "OK"
+		exit 0
+	fi
 fi
 
 if [ "$action" = "run" ] || [ "$action" = "up" ]; then

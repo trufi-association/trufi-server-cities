@@ -122,7 +122,7 @@ e.g.
   - Command: `add_module <name of city> <module name>` 
   - Example: `add_module "Bolivia-Cochabamba" otp`
   - Example (using `workon` script): `add_module otp`
-- **To remove an module from the run configuration**
+- **To remove an module from the run configuration (removes container but will not remove any files)** 
   - Command: `remove_module <name of city> <module name>` 
   - Example: `remove_module "Bolivia-Cochabamba" otp`
   - Example (using `workon` script): `remove_module otp`
@@ -130,6 +130,8 @@ e.g.
   - Command: `restart_module <name of city> <module name>`
   - Example: `restart_module "Bolivia-Cochabamba" otp`
   - Example (using `workon` script): `restart_module otp`
+
+After adding or removing a module we should advertise the change to the web server nginx. We do so by executing `./server nginx reload` which causes nginx to reload its configuration without restarting
 
 #### Server management (all active cities and their enabled modules + web server)
 
@@ -164,7 +166,7 @@ server up # will bring all added modules in city 'Germany-Hamburg' up (scope 'ci
   - Command: `server <name of city> stop`
 - **To perform actions on the nginx (web server) only**
   - Command: `server nginx <action>`
-  - Restart nginx after manual configuration change: `server nginx restart`
+  - Reload nginx after its configuration has changed: `server nginx reload`
 
 - **To view a list of running modules**
   - Command: `server <name of city> ls` (filtered Trufi optimised result for `docker container ls` command)
