@@ -43,7 +43,9 @@ if [ -f "$ymlFile" ]; then
 		redecho "   Deactivation failed! Do I have write access to '$ymlFile'?">&2
 		exit 1
 	fi
-	blueecho "   This operation did not remove file '$ymlFile' but set it to 'inactive'!"
+	blueecho "   This operation did **not** remove"
+	blueecho "   - file '$ymlFile' but set it to 'inactive'"
+	blueecho "   - and its data directory 'data_$city'"
 else
 	greenecho "   module '$modulename' for city '$city' already set to inactive. No need to do it again :)"
 fi
