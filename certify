@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ./lib/colorful
+
 letsencryptDirHost="./data/letsencrypt"
 emailArg="--register-unsafely-without-email"
 
