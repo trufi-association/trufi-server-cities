@@ -17,4 +17,4 @@ if [ -n "$email" ]; then
 fi
 
 # modify that line as you like and as required to fit your setup
-certbot certonly --webroot -w "$letsencryptDirHost" $emailArg $domain --rsa-key-size 4096 --agree-tos #--force-renewal"
+certbot certonly --webroot "$letsencryptDirHost" $emailArg $domain --rsa-key-size 4096 --agree-tos #--force-renewal"
