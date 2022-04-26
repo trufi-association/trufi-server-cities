@@ -3,20 +3,29 @@
 source ./lib/colorful
 
 letsencryptDirHost="./data/letsencrypt"
+letsencryptDirConfig="$letsencryptDirHost/config"
+letsencryptDirLog="$letsencryptDirHost/log"
+letsencryptDirWork="$letsencryptDirHost/work"
+pathsToCheck=( "$letsencryptDirHost" "$letsencryptDirConfig" "$letsencryptDirLog" "$letsencryptDirWork" )
 emailArg="--register-unsafely-without-email"
 
 
 blueecho "1. perform some checks & normalizations ..."
 source ./lib/validation
 
-if [ -d "$letsencryptDirHost" ]; then
-	orangeecho "creating directory '$letsencryptDirHost' ..."
-	mkdir -p "$letsencryptDirHost"
-fi
-
 if [ -n "$email" ]; then
 	emailArg="--email $email"
 fi
+
+for item in "${pathsToCheck[@]}"; do
+	if ! [ -d "$item" ]; then
+		mkdir $item
+	fi
+	if ! [ -d "$item" ]; then
+		redecho "Error: Creation of directory '$item' failed! Do I have write access?"
+		exit 1
+	fi
+done
 
 echo "Where is the webroot? A directory where certbot stores the token sent by Let's Encrypt and which will be served as a specified path by a web server running on port 80"
 read webroot
@@ -24,9 +33,10 @@ if [ -z "$webroot" ] && ! [ -d "$webroot" ]; then
 	redecho "Invalid input! Either provided an invalid string or the specified directory does not exist"
 	exit 1
 fi
-
 # modify that line as you like and as required to fit your setup
-orangeecho "certbot certonly --webroot \"$webroot\" --config-dir \"$letsencryptDirHost\" -d \"$domain\" $emailArg --rsa-key-size 4096 --agree-to"
+
+cmd="certbot certonly -w \"$webroot\" -d $domain --config-dir \"$letsencryptDirConfig\" --work-dir \"$letsencryptDirWork\" --logs-dir \"$letsencryptDirLog\" $emailArg --rsa-key-size 4096 --agree-tos" #--force-renewal
+orangeecho "$cmd"
 echo "Continue executing this [yes|no]:"
 read x
 if ! [ "$x" = "yes" ]; then
@@ -35,4 +45,5 @@ if ! [ "$x" = "yes" ]; then
 fi
 
 # modify that line as you like and as required to fit your setup
-certbot certonly --webroot "$webroot" --config-dir "$letsencryptDirHost" -d "$domain" $emailArg --rsa-key-size 4096 --agree-tos #--force-renewal"
+eval $cmd
+#certbot certonly -w "$webroot" -d $domain --config-dir "$letsencryptDirConfig" --work-dir "$letsencryptDirWork" --logs-dir "$letsencryptDirLog" $emailArg --rsa-key-size 4096 --agree-tos #--force-renewal"
