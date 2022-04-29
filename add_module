@@ -32,10 +32,9 @@ ymlFileInactive="$ymlFile.inactive"
 
 if ! [ -f "$ymlFileInactive" ] && ! [ -f "$ymlFile" ]; then
 	orangeecho "   building & adding module '$modulename' ( directory '$extDir' ) for city '$city' ..."
-	city_original="$city"
-	export city="${city,,}"
-	envsubst < $extDir/docker-compose.yml > "$ymlFile"
-	export city="$city_original"
+	export city_normalize="${city,,}"
+	(export `cat ./$cityfile | xargs` 
+	envsubst < $extDir/docker-compose.yml > "$ymlFile" )
 	if ! [ -f "$ymlFile" ]; then
 		redecho "     Creating & adding operation failed! Do I have write access to '$extDir'?">&2
 		exit 1

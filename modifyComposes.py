@@ -30,7 +30,7 @@ for ext in os.listdir(modulesPath):
 		
 		servicesToRename = []
 		for service in dockercompose["services"]:
-			if not service.endswith("_$city"):
+			if not service.endswith("_$city_normalize"):
 				servicesToRename.append(service)
 			print("    service '{}'".format(service))
 			if "volumes" in dockercompose["services"][service]:
@@ -47,8 +47,8 @@ for ext in os.listdir(modulesPath):
 				del dockercompose["services"][service]["ports"]
 			
 		for service in servicesToRename:
-			print("      renaming to '{}' ...".format(service + "_$city"))
-			dockercompose["services"][service + "_$city"] = dockercompose["services"][service]
+			print("      renaming to '{}' ...".format(service + "_$city_normalize"))
+			dockercompose["services"][service + "_$city_normalize"] = dockercompose["services"][service]
 			del dockercompose["services"][service]
 				
 		sfile = open(os.path.join(extDir, "docker-compose.yml"), "w")
