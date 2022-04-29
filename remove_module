@@ -6,71 +6,77 @@ usage() {
 	blueecho "USAGE 1:"
 	blueecho "./add_module <name of env file> <name of module>"
 	blueecho "./add_module Bolivia-Cochabamba otp"
-	blueecho "USAGE 2 (works only when \$enfile has been set e.g. by 'export $enfile=[...]' or by invoking '. ./workas'):"
+	blueecho "USAGE 2 (works only when \$enfile has been set e.g. by 'export $cityfile=[...]' or by invoking '. ./workon'):"
 	blueecho "./add_module <name of module>"
 	blueecho "./add_module otp"
+}
+
+removeNGINXconf() {
+	local modulename="$2"
+	if [ -f "./data/nginx/${1}/${city}/${modulename}.conf" ]; then
+		orangeecho "   removing nginx configuration of module '$modulename' from nginx city config for '$city'  ..."
+		rm "./data/nginx/${1}/${city}/${modulename}.conf" --verbose
+	fi
+
+	if [ -d "./data/nginx/${1}/${city}" ] && [ -z `dir "./data/nginx/${1}/${city}"` ]; then
+		orangeecho "   removing nginx configuration of city '$city' because it's empty now ..."
+		rm -R "./data/nginx/${1}/${city}" --verbose
+		if [ -f "./data/nginx/${1}/${city}.conf" ]; then
+			orangeecho "   completing removal of nginx configuration for city '$city' ..."
+			rm "./data/nginx/${1}/${city}.conf" --verbose
+		fi
+	fi
 }
 
 blueecho "1. perform some checks & normalizations"
 source ./lib/validation
 
-modulename="${args[0]}"
-moduleDir="./modules/$modulename"
-## if $modulename is empty or $moduleDir does not exist
-if [ -z $modulename ] || ! [ -d "$moduleDir" ]; then
-	redecho "  Error: You must specify a valid name of an module to remove from city '$city'">&2
-	echo "  A list of modules available:"
-	dir ./modules
-	exit 1
-fi
-
-blueecho "2. deactivate the module"
-
-# dataDir="$moduleDir/data_$city"
-# dataDirInactive="$dataDir.inactive"
-ymlFile="$moduleDir/$city.yml"
-ymlFileInactive="$ymlFile.inactive"
-
-if [ -f "$ymlFile" ]; then
-	orangeecho "   setting module  '$modulename' ( directory '$moduleDir' ) for city '$city' from city '$city' to inactive ..."
+removeModule() {
+	local modulename="$1"
+	blueecho "2. deactivate module '$modulename' in city '$city'"
 	
-	cd $moduleDir
-	sudo docker-compose -f "$city.yml" down
-	cd ../../
+	ymlFile="$moduleDir/$city.yml"
+	ymlFileInactive="$ymlFile.inactive"
 	
-	mv "$ymlFile" "$ymlFileInactive" --verbose
-	if ! [ -f "$ymlFileInactive" ]; then
-		redecho "   Deactivation failed! Do I have write access to '$ymlFile'?">&2
-		exit 1
-	fi
-	blueecho "   This operation did **not** remove"
-	blueecho "   - file '$ymlFile' but set it to 'inactive'"
-	blueecho "   - and its data directory 'data_$city'"
-else
-	greenecho "   module '$modulename' for city '$city' already set to inactive. No need to do it again :)"
-fi
-
-removeNGINXconf() {
-	if [ -f "./data/nginx/$1/$city/$modulename.conf" ]; then
-		orangeecho "   removing nginx configuration of module '$modulename' from nginx city config for '$city'  ..."
-		rm "./data/nginx/$1/$city/$modulename.conf" --verbose
-	fi
-
-	if [ -d "./data/nginx/$1/$city" ] && [ -z `dir "./data/nginx/$1/$city"` ]; then
-		orangeecho "   removing nginx configuration of city '$city' because it's empty now ..."
-		rm -R "./data/nginx/$1/$city" --verbose
-		if [ -f "./data/nginx/$1/$city.conf" ]; then
-			orangeecho "   completing removal of nginx configuration for city '$city' ..."
-			rm "./data/nginx/$1/$city.conf" --verbose
+	if [ -f "$ymlFile" ]; then
+		orangeecho "   setting module in directory '$moduleDir' to inactive ..."
+		
+		cd $moduleDir
+		sudo docker-compose -f "$city.yml" down
+		cd ../../
+	
+		mv "$ymlFile" "$ymlFileInactive" --verbose
+		if ! [ -f "$ymlFileInactive" ]; then
+			redecho "   Deactivation failed! Do I have write access to '$ymlFile'?">&2
+			exit 1
 		fi
+		blueecho "   This operation did **not** remove"
+		blueecho "   - file '$ymlFile' but set it to 'inactive'"
+		blueecho "   - and its data directory 'data_$city'"
+	else
+		greenecho "   already set to inactive. No need to do it again :)"
 	fi
+	
+	blueecho "3. remove interweb nginx configuration"
+	removeNGINXconf "interweb" "$modulename"
+	if [ "$intraweb" = "yes" ]; then
+		blueecho "4. remove intraweb nginx configuration"
+		removeNGINXconf "intraweb" "$modulename"
+	fi
+	
+	greenecho "removed trufi module '$modulename' from city '$city'"
 }
 
-blueecho "3. remove interweb nginx configuration"
-removeNGINXconf "interweb"
-if [ "$intraweb" = "yes" ]; then
-	blueecho "4. remove intraweb nginx configuration"
-	removeNGINXconf "intraweb"
-fi
-
-greenecho "removed trufi module '$modulename' from city '$city'"
+for module in "${args[@]}"; do
+	moduleDir="./modules/$module"
+	if [ -z "$module" ]; then
+		continue
+	fi
+	#if $modulename is empty or $moduleDir does not exist
+	if ! [ -d "$moduleDir" ]; then
+		orangeecho "WARNING: Module '$module' does not exist, ignoring ..."
+		continue
+	fi
+	echo
+	removeModule "$module"
+done

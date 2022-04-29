@@ -119,14 +119,25 @@ e.g.
 #### Module management
 
 - **To add an module to the run configuration (does not start it automatically)**
-  - Command: `add_module <name of city> <module name>` 
+  
+  This command accepts a list of modules to add like `./add_module "Bolivia-Cochabamba" otp tileserver` or `add otp tileserver`
+  
+  - Command: `add_module <name of city> <module name> [<module name>]`
   - Example: `add_module "Bolivia-Cochabamba" otp`
-  - Example (using `workon` script): `add_module otp`
+  - Example (using `workon` script): `add otp`
+  
 - **To remove an module from the run configuration (removes container but will not remove any files)** 
-  - Command: `remove_module <name of city> <module name>` 
+  
+  This command accepts a list of modules to remove like `./remove_module "Bolivia-Cochabamba" otp tileserver` or `remove otp tileserver`
+  
+  - Command: `remove_module <name of city> <module name>  [<module name>]`
   - Example: `remove_module "Bolivia-Cochabamba" otp`
-  - Example (using `workon` script): `remove_module otp`
+  - Example (using `workon` script): `remove otp`
+  
 - **To (re)start an module (just use when the module hangs or other unusual things happened)**
+  
+  *This is deprecated and will be removed soon!*
+  
   - Command: `restart_module <name of city> <module name>`
   - Example: `restart_module "Bolivia-Cochabamba" otp`
   - Example (using `workon` script): `restart_module otp`
@@ -139,7 +150,7 @@ After adding or removing a module we should advertise the change to the web serv
 ./server [<name of city>] <action>
 ```
 
-The `server` script behaves differently based on how it is run. If you use it in a Bash modified by the `workon` script then the action is relative to the current city. Of course you don't have to provide the argument `<name of city>` anymore as in the previous section. This is the 'city' scope. If you use it in the standard Bash and you don't provide the argument `<name of city>` then the action will be applied to all added modules in all cities. This is the 'global' scope. This will not work for the `viewlog` or `log` action cause they can only applied to a container at a time.
+The `server` script behaves differently based on how it is run. If you use it in a Bash modified by the `workon` script then the action is relative to the current city. Of course you don't have to provide the argument `<name of city>` anymore as in the previous section. This is the 'city' scope. If you use it in the standard Bash and you don't provide the argument `<name of city>` then the action will be applied to all added modules in all cities. This is the 'global' scope.
 
 Some examples:
 
@@ -156,7 +167,7 @@ server up # will bring all added modules in city 'Germany-Hamburg' up (scope 'ci
 ./server up # will bring all added modules in all cities up (scope 'global')
 ```
 
-- **To start the server for the first time**
+- **To start the server for the first time ((re)creating docker containers etc.)**
   - Command: `server <name of city> run` or `server <name of city> up`
 - **To start the server**
   - Command: `server <name of city> start`
@@ -167,19 +178,14 @@ server up # will bring all added modules in city 'Germany-Hamburg' up (scope 'ci
 - **To perform actions on the nginx (web server) only**
   - Command: `server nginx <action>`
   - Reload nginx after its configuration has changed: `server nginx reload`
-
 - **To view a list of running modules**
   - Command: `server <name of city> ls` (filtered Trufi optimised result for `docker container ls` command)
   - Command: `server <name of city> ps` (native docker-compose command for every single module)
 - **(production only) View logs for a module from current day**
-  - Command: `server <name of city> log <module name>`
-  - Command: `server <name of city> viewlog <module name>`
   - Command: `viewlog <name of city> <module name>`
   - Example: `viewlog "Bolivia-Cochabamba" otp`
   - Example (using `workon` script): `viewlog "Bolivia-Cochabamba" otp`
 - **(production only) View logs for a module with custom commands to the underlying `journalctl` command**
-  - Command: `server <name of city> log <module name> <journalctl argument> [<journalctl argument>]`
-  - Command: `server <name of city> viewlog <module name> <journalctl argument> [<journalctl argument>]`
   - Command: `viewlog <name of city> <module name> <journalctl argument> [<journalctl argument>]`
 
 **Not all available commands are listed here e.g. most commands for `server` are documented in its source code or indirectly by `docker-compose`**
