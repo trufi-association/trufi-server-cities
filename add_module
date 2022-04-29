@@ -32,7 +32,10 @@ ymlFileInactive="$ymlFile.inactive"
 
 if ! [ -f "$ymlFileInactive" ] && ! [ -f "$ymlFile" ]; then
 	orangeecho "   building & adding module '$modulename' ( directory '$extDir' ) for city '$city' ..."
+	city_original="$city"
+	export city="${city,,}"
 	envsubst < $extDir/docker-compose.yml > "$ymlFile"
+	export city="$city_original"
 	if ! [ -f "$ymlFile" ]; then
 		redecho "     Creating & adding operation failed! Do I have write access to '$extDir'?">&2
 		exit 1
@@ -91,9 +94,10 @@ else
 		fi
 	fi
 	orangeecho "     copying & altering nginx configuration for module '$modulename' to nginx city configuration for '$city' (overwriting if already existing) ..."
-	modulenginxconf_content=`echo "$modulenginxconf_content" | sed -r "s/http\:\/\/(.+?)\//http\:\/\/\\1_$city\//g" # "$extDir/nginx.conf" # > "$nginxcitymoduleconf"`
+	city_normalized="${city,,}"
+	modulenginxconf_content=`echo "$modulenginxconf_content" | sed -r "s/http\:\/\/(.+?)\//http\:\/\/\\1_$city_normalized\//g" # "$extDir/nginx.conf" # > "$nginxcitymoduleconf"`
 	if [ "$curmode" = "$MODE_VIRTUALDOMAINS" ]; then
-		modulenginxconf_content=`echo "$modulenginxconf_content" | sed -E "s/location \/(.+?)/location \/$city\/\1/g" | sed -E "s/return (.+?) \/(.*?)/return \1 \/$city\/\2/g"` # bug
+		modulenginxconf_content=`echo "$modulenginxconf_content" | sed -E "s/location \/(.+?)/location \/$city\/\1/g" | sed -E "s/return (.+?) \/(.*?)/return \1 \/$city\/\2/g"`
 	fi
 	echo "$modulenginxconf_content" > "$nginxcitymoduleconf"
 fi
@@ -104,7 +108,7 @@ if [ "$intraweb" = "yes" ]; then
 	nginxcityfolder="./data/nginx/intraweb/$city"
 	nginxcityconf="$nginxcityfolder.conf"
 	nginxcitymoduleconf="$nginxcityfolder/$modulename.conf"
-	module_container_name="${modulename}_${city}"
+	module_container_name="${modulename}_${city,,}"
 	if ! [ -d "$nginxcityfolder" ]; then
 		orangeecho "     creating nginx configuration for city '$city' ..."
 		mkdir "$nginxcityfolder"
