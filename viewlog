@@ -6,7 +6,7 @@ source ./lib/colorful
 blueecho "performing some checks & normalizations ..."
 source ./lib/validation
 
-container_name="$1_$city"
+container_name="$1-$city"
 moreargs=false
 projectname=`basename "$PWD"`
 
