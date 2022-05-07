@@ -101,7 +101,6 @@ print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://\\\\\\1-${city,,}\\\\\\2\", txt
 		nginxcityconf="$nginxcityfolder.conf"
 		nginxcitymoduleconf="$nginxcityfolder/$modulename.conf"
 		module_container_name="${modulename}-${city,,}"
-		echo "$module_container_name"
 		if ! [ -d "$nginxcityfolder" ]; then
 			orangeecho "     creating nginx configuration for city '$city' ..."
 			mkdir "$nginxcityfolder"
@@ -121,7 +120,7 @@ print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://\\\\\\1-${city,,}\\\\\\2\", txt
 	greenecho "added trufi module '$modulename' to city '$city'"
 	echo -e "It is available somewhere under the following domains (as far as known to this script):"
 	echo -e "- Interweb: \033[0;34m$domain\033[0;m"
-	if [ "$env" = "production" ]; then
+	if [ "$intraweb" = "yes" ]; then
 		echo -e "- Intraweb: \033[0;34m$module_container_name.localhost\033[0;m"
 	fi
 }
@@ -141,7 +140,7 @@ for module in "${args[@]}"; do
 	addModule "$module"
 done
 if ! [ -z "$moduleNotFound" ]; then
-	redecho "Error: You specified an invalid name of an module to add to city '$city'">&2
+	redecho "Error: You specified an invalid name of a module to add to city '$city'">&2
 	echo "A list of modules available:"
 	dir ./modules
 	exit 1
