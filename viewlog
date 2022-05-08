@@ -6,26 +6,28 @@ source ./lib/colorful
 blueecho "performing some checks & normalizations ..."
 source ./lib/validation
 
-container_name="$1-$city"
-moreargs=false
+modulename="${args[0]}"
+# remove elem on first index
+unset args[0]
+args=( `echo "${args[@]}"` )
+
+container_name="$modulename-$city"
+moreargs="false"
 projectname=`basename "$PWD"`
 
-if ! [ -n "$1" ]; then
+if [ -z "$modulename" ]; then
     echo 'Error: extension name as param is needed (e.g. "tileserver")' >&2
     exit 1
 fi
 
-if ! [ -z "$2" ]; then
+if [ ${#args[@]} -gt 0 ]; then
 	moreargs="true"
 fi
-unset $1
 
-args=()
-if [ $moreargs = "true" ]; then
-	args="$@"
-else
-	args+=( --since today )
+if [ "$moreargs" = "false" ]; then
+	args+=( --since now )
 fi
 
-orangeecho "Executing 'sudo journalctl CONTAINER_NAME=\"${projectname}_${container_name}_1\" -f ${args[@]}'"
-sudo journalctl CONTAINER_NAME="${projectname}_${container_name}_1" -f "${args[@]}"
+arguments="${args[@]}"
+orangeecho "Executing 'sudo journalctl CONTAINER_NAME=\"${projectname}_${container_name}_1\" $arguments'"
+sudo journalctl CONTAINER_NAME="${projectname}_${container_name}_1" $arguments
