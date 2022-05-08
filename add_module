@@ -92,6 +92,12 @@ print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://\\\\\\1-${city,,}\\\\\\2\", txt
 			modulenginxconf_content=`echo "$modulenginxconf_content" | sed -E "s/location \/(.+?)/location \/$city\/\1/g" | sed -E "s/return (.+?) \/(.*?)/return \1 \/$city\/\2/g"`
 		fi
 		echo "$modulenginxconf_content" > "$nginxcitymoduleconf"
+		orangeecho "   creating logging structure ..."
+		if ! [ -d "./data/logs/nginx/$domain" ]; then
+			mkdir -p "./data/logs/nginx/$domain" --verbose
+		else
+			greenecho "     not necessary as already existing :)"
+		fi
 	fi
 
 	if [ "$intraweb" = "yes" ]; then

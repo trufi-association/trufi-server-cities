@@ -83,11 +83,6 @@ module_dir=$module_dir_renamed
 
 orangeecho "   removing incompactible modules ..."
 rm -r $module_dir/nginx-*
-# incompactibleModules=( "nginx" )
-# for module in ${incompactibleModules[@]}; do
-# 	orangeecho "     $module ..."
-# 	rm -R "$module_dir/$module"
-# done
 
 python3 modifyComposes.py
 
@@ -187,6 +182,7 @@ if ! [ -f "$dest" ] && [ "$CURMODE" = "$MODE_VIRTUALDOMAINS" ]; then
 	fi
 	orangeecho "     adding $environment virtual server ..."
 	sed "s/# modules/# modules of all cities all using this single virtual server configuration\ninclude \/etc\/nginx\/interweb\/*\/\*.conf\;/" "$nginxcityconf_template_interweb" | sed "s/example.org/$domain/g" > "$dest"
+	mkdir -p "./data/logs/nginx/$domain"
 
 elif [ "$CURMODE" = "$MODE_REALDOMAINS" ]; then
 	greenecho "     doing something with nginx configurations before adding a city is not necessary. Skipping this step!"
