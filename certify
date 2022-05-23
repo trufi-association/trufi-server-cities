@@ -8,42 +8,69 @@ letsencryptDirLog="$letsencryptDirHost/log"
 letsencryptDirWork="$letsencryptDirHost/work"
 pathsToCheck=( "$letsencryptDirHost" "$letsencryptDirConfig" "$letsencryptDirLog" "$letsencryptDirWork" )
 emailArg="--register-unsafely-without-email"
+subcommand="certonly"
 
 
-blueecho "1. perform some checks & normalizations ..."
-source ./lib/validation
+certifyMethod() {
+	blueecho "1. perform some checks & normalizations ..."
+	source ./lib/validation
 
-if [ -n "$email" ]; then
-	emailArg="--email $email"
-fi
-
-for item in "${pathsToCheck[@]}"; do
-	if ! [ -d "$item" ]; then
-		mkdir $item
+	webroot="${args[0]}"
+	
+	if [ -n "${args[1]}" ]; then
+		domain="${args[1]}"
 	fi
-	if ! [ -d "$item" ]; then
-		redecho "Error: Creation of directory '$item' failed! Do I have write access?"
-		exit 1
+	
+		if [ -n "${args[2]}" ]; then
+		subcommand="${args[2]}"
 	fi
-done
 
-echo "Where is the webroot? A directory where certbot stores the token sent by Let's Encrypt and which will be served as a specified path by a web server running on port 80"
-read webroot
-if [ -z "$webroot" ] && ! [ -d "$webroot" ]; then
-	redecho "Invalid input! Either provided an invalid string or the specified directory does not exist"
-	exit 1
-fi
-# modify that line as you like and as required to fit your setup
+	if [ -n "$email" ]; then
+		emailArg="--email $email"
+	fi
 
-cmd="certbot certonly -w \"$webroot\" -d $domain --config-dir \"$letsencryptDirConfig\" --work-dir \"$letsencryptDirWork\" --logs-dir \"$letsencryptDirLog\" $emailArg --rsa-key-size 4096 --agree-tos" #--force-renewal
-orangeecho "$cmd"
-echo "Continue executing this [yes|no]:"
-read x
-if ! [ "$x" = "yes" ]; then
-	echo "Aborting ..."
-	exit 0
-fi
+	for item in "${pathsToCheck[@]}"; do
+		if ! [ -d "$item" ]; then
+			mkdir $item
+		fi
+		if ! [ -d "$item" ]; then
+			redecho "Error: Creation of directory '$item' failed! Do I have write access?"
+			exit 1
+		fi
+	done
 
-# modify that line as you like and as required to fit your setup
-eval $cmd
-#certbot certonly -w "$webroot" -d $domain --config-dir "$letsencryptDirConfig" --work-dir "$letsencryptDirWork" --logs-dir "$letsencryptDirLog" $emailArg --rsa-key-size 4096 --agree-tos #--force-renewal"
+	if [ -z "$webroot" ]; then
+		echo "Where is the webroot? A directory where certbot stores the token sent by Let's Encrypt and which will be served as a specified path by a web server running on port 80"
+		read webroot
+		if [ -z "$webroot" ] && ! [ -d "$webroot" ]; then
+			redecho "Invalid input! Either provided an invalid string or the specified directory does not exist"
+			exit 1
+		fi
+	fi
+	# modify that line as you like and as required to fit your setup
+	cmd="certbot $subcommand -w \"$webroot\" -d $domain --config-dir \"$letsencryptDirConfig\" --work-dir \"$letsencryptDirWork\" --logs-dir \"$letsencryptDirLog\" $emailArg --rsa-key-size 4096 --agree-tos" #--force-renewal
+	orangeecho "$cmd"
+
+	systemdservice="[Unit]
+Description=renew certificate for domain '$domain'
+
+[Service]
+Type=simple
+WorkingDirectory=$PWD
+ExecStart=certify \"$city\" \"$webroot\" \"$domain\" \"renew\"
+">"/etc/systemd/system/$domain.service"
+
+	systemdtimer="[Unit]
+Description=timer to renew certificate for domain '$domain'
+
+[Timer]
+OnCalendar=$(date --date="60 days" +"%Y-%m-%d") 00:00:00
+">"/etc/systemd/system/$domain.timer"
+	systemctl enable "$domain.service"
+	systemctl enable "$domain.timer"
+	systemctl daemon-reload
+
+	# modify that line as you like and as required to fit your setup
+	eval $cmd
+	#certbot certonly -w "$webroot" -d $domain --config-dir "$letsencryptDirConfig" --work-dir "$letsencryptDirWork" --logs-dir "$letsencryptDirLog" $emailArg --rsa-key-size 4096 --agree-tos #--force-renewal"
+}
