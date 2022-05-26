@@ -1,4 +1,12 @@
 #!/bin/bash
+# ------------------------
+# Invoke script as following:
+# ./certify <Country-City> <webroot>
+# e.g.:
+# ./certify Germany-Hamburg /srv/trufi/nginx/www
+# ------------------------
+# <webroot> explained
+# <webroot> specifies the directory to save the token Let's Encrypt generates for you. That <webroot> needs to be served by a web server which you set up to react when Let's Encrypt pings your domain you want to enable HTTPS on port 80 (HTTP port) for. It looks up the token to verify that the domain really belongs to you. See https://stackoverflow.com/questions/49964315/what-should-letsencrypt-certbot-autos-webroot-path-be-for-a-non-php-non-sta for better explanation.
 
 source ./lib/colorful
 
@@ -8,69 +16,81 @@ letsencryptDirLog="$letsencryptDirHost/log"
 letsencryptDirWork="$letsencryptDirHost/work"
 pathsToCheck=( "$letsencryptDirHost" "$letsencryptDirConfig" "$letsencryptDirLog" "$letsencryptDirWork" )
 emailArg="--register-unsafely-without-email"
-subcommand="certonly"
 
+blueecho "1. perform some checks & normalizations ..."
+source ./lib/validation
 
-certifyMethod() {
-	blueecho "1. perform some checks & normalizations ..."
-	source ./lib/validation
-
-	webroot="${args[0]}"
+webroot="${args[0]}"
 	
-	if [ -n "${args[1]}" ]; then
-		domain="${args[1]}"
-	fi
-	
-		if [ -n "${args[2]}" ]; then
-		subcommand="${args[2]}"
-	fi
+if [ -n "${args[1]}" ]; then
+	domain="${args[1]}"
+fi
 
-	if [ -n "$email" ]; then
-		emailArg="--email $email"
+if [ -n "$email" ]; then
+	emailArg="--email $email"
+else
+	redecho "   registering a HTTPS certificate without specifying an email address is discouraged but allowed!"
+fi
+
+for item in "${pathsToCheck[@]}"; do
+	if ! [ -d "$item" ]; then
+		mkdir -p $item --verbose
 	fi
-
-	for item in "${pathsToCheck[@]}"; do
-		if ! [ -d "$item" ]; then
-			mkdir $item
-		fi
-		if ! [ -d "$item" ]; then
-			redecho "Error: Creation of directory '$item' failed! Do I have write access?"
-			exit 1
-		fi
-	done
-
-	if [ -z "$webroot" ]; then
-		echo "Where is the webroot? A directory where certbot stores the token sent by Let's Encrypt and which will be served as a specified path by a web server running on port 80"
-		read webroot
-		if [ -z "$webroot" ] && ! [ -d "$webroot" ]; then
-			redecho "Invalid input! Either provided an invalid string or the specified directory does not exist"
-			exit 1
-		fi
+	if ! [ -d "$item" ]; then
+		redecho "Error: Creation of directory '$item' failed! Do I have write access?"
+		exit 1
 	fi
-	# modify that line as you like and as required to fit your setup
-	cmd="certbot $subcommand -w \"$webroot\" -d $domain --config-dir \"$letsencryptDirConfig\" --work-dir \"$letsencryptDirWork\" --logs-dir \"$letsencryptDirLog\" $emailArg --rsa-key-size 4096 --agree-tos" #--force-renewal
-	orangeecho "$cmd"
+done
 
-	systemdservice="[Unit]
+if [ -z "$webroot" ]; then
+	echo -e "Where is the webroot? A directory where certbot stores the token sent by Let's Encrypt to verify that you own the domain and which will be served by a web server running on port 80\033[0;34m"
+	read webroot
+	if [ -z "$webroot" ] && ! [ -d "$webroot" ]; then
+		redecho "Invalid input! Either provided an empty input or the specified directory does not exist"
+		exit 1
+	fi
+fi
+
+# modify that line as you like and as required to fit your setup
+cmd="certbot certonly --webroot --webroot-path \"$webroot\" -d $domain --config-dir \"$letsencryptDirConfig\" --work-dir \"$letsencryptDirWork\" --logs-dir \"$letsencryptDirLog\" $emailArg --rsa-key-size 4096 --agree-tos --non-interactive" #--force-renewal
+blueecho "2. executing '$cmd' ..."
+eval $cmd # execute the command stored in the variable 'cmd'
+
+blueecho "3. Setting up automatic renewal of HTTPS certificate for domain '$domain' every 60 days from now on"
+
+orangeecho "   creating systemd system service file ..."
+servicefilepath="/etc/systemd/system/$domain.service"
+if [ -f "$servicefilepath" ]; then
+	greenecho "     already exists somehow, won't overwrite!"
+else
+	echo "[Unit]
 Description=renew certificate for domain '$domain'
 
 [Service]
 Type=simple
 WorkingDirectory=$PWD
-ExecStart=certify \"$city\" \"$webroot\" \"$domain\" \"renew\"
-">"/etc/systemd/system/$domain.service"
+ExecStart=$cmd
+" | sudo tee "$servicefilepath"
+sudo systemctl disable "$domain.service"
+fi
 
-	systemdtimer="[Unit]
+orangeecho "   creating systemd system timer file ..."
+timerfilepath="/etc/systemd/system/$domain.timer"
+if [ -f "$timerfilepath" ]; then
+	greenecho "     already exists somehow, won't overwrite!"
+else
+	echo "[Unit]
 Description=timer to renew certificate for domain '$domain'
 
 [Timer]
 OnCalendar=$(date --date="60 days" +"%Y-%m-%d") 00:00:00
-">"/etc/systemd/system/$domain.timer"
-	systemctl enable "$domain.service"
-	systemctl enable "$domain.timer"
-	systemctl daemon-reload
+OnUnitActiveSec=60d
+Persistent=true
 
-	# modify that line as you like and as required to fit your setup
-	eval $cmd
-	#certbot certonly -w "$webroot" -d $domain --config-dir "$letsencryptDirConfig" --work-dir "$letsencryptDirWork" --logs-dir "$letsencryptDirLog" $emailArg --rsa-key-size 4096 --agree-tos #--force-renewal"
-}
+[Install] 
+WantedBy=basic.target"| sudo tee "$timerfilepath"
+sudo systemctl enable "$domain.timer"
+fi
+
+orangeecho "   activating systemd system timer ..."
+sudo systemctl daemon-reload
