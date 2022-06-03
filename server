@@ -55,7 +55,11 @@ if [ -f "./config/${args[0]/'.env'/''}.env" ]; then # export the variables in th
 fi
 
 if [ -z "$city" ]; then
-	echo "No city configuration specified! Action '$action' will be applied to all added modules in all cities."
+	maxcount=5
+	for i in {0..5}; do
+		echo -ne "No city configuration specified! Action '$action' will be applied to all added modules in all cities in $((maxcount - i)) ...\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
+		sleep 1
+	done
 	operateInScope="global"
 	cityrelatedtext="in all cities"
 	# list all added modules in all cities
@@ -88,6 +92,10 @@ else
 	}
 fi
 
+_reloadNginxConfig() {
+	orangeecho "reloading nginx configuration without the need to restart nginx ..."
+	sudo docker-compose -p "$projectname" -f "docker-compose.yml" exec nginx nginx -s reload
+}
 
 _donothing() {
 	return 0
@@ -116,6 +124,39 @@ _ls() {
 	printArrayLineByLine
 }
 
+# a customCode and therefore getting parameters:
+# $1 name of docker-compose file
+# $2 $action
+_refresh() {
+	#  amount of arguments passed lower than three then there weren't three arguments specified necessary to operate on specified docker-composes so
+	if [ ${#?[@]} -lt 3 ]; then
+		# assume global operation and just reload nginx configuration
+		_reloadNginxConfig
+		return
+	fi
+	
+	# remove '-f ' from param $1
+	local dockercomposeFile=${1//"-f "/""}
+	# get services
+	local runningServices=`sudo docker-compose -p "$projectname" -f "$dockercomposeFile" ps --services`
+	local runningContainerIds=`sudo docker-compose -p "$projectname" -f "$dockercomposeFile" ps --quiet`
+	local runningServices=( $runningServices )
+	local runningContainerIds=( $runningContainerIds )
+	local length=${#runningServices[@]}
+	
+	# https://github.com/docker/compose/issues/1786#issuecomment-579794865
+	for ((i=0; i<${length}; i++)); do
+		orangeecho "Updating docker service '${runningServices[$i]}' of docker-compose file '$dockercomposeFile' ..."
+		sudo docker-compose up -d -p "$projectname" -f "$dockercomposeFile" --scale ${runningServices[$i]}=2 --no-recreate ${runningServices[$i]}
+		
+		sleep 5 # TODO: healtheck instead of waiting five seconds in hope this is enough for the startup process
+		
+		sudo docker rm -f ${runningContainerIds[$i]}
+		sudo docker-compose up -d -p "$projectname" -f "$dockercomposeFile" --scale ${runningServices[$i]}=1 --no-recreate ${runningServices[$i]}
+		
+	done
+}
+
 printArrayLineByLine() {
 	for i in "${heading[@]}"; do
 		echo "$i"
@@ -125,6 +166,11 @@ printArrayLineByLine() {
 		echo "$i"
 	done
 
+}
+
+operateOnNginx() {
+	orangeecho "performing desired action '$action' on docker-compose.yml $appendTXT..."
+	sudo docker-compose -p "$projectname" -f "docker-compose.yml" $action
 }
 
 
@@ -141,8 +187,7 @@ if [ "$action" = "nginx" ]; then
 		true
 	}
 	if [ "$action" = "reload" ]; then
-		orangeecho "reloading nginx configuration without the need to restart nginx ..."
-		sudo docker-compose -p "$projectname" -f "docker-compose.yml" exec nginx nginx -s reload
+		_reloadNginxConfig
 		greenecho "OK"
 		exit 0
 	fi
@@ -157,6 +202,9 @@ elif [ "$action" = "ls" ]; then
 	action="ps"
 	customCode="_donothing"
 	customDisplay="_ls"
+elif [ "$action" = "refresh" ]; then
+	action="ps"
+	customCode="_refresh"
 elif [ "$action" = "log" ] || [ "$action" = "viewlog" ] ; then
 	redecho "Action '$action' no longer supported..."
 fi
@@ -185,9 +233,6 @@ if [ -z "$customCode" ]; then
 	if [ "$action" = "down" ]; then
 		appendTXT="because there is no container for any city running "
 	fi
-	# if $action is not "down" then the statement after '&&' will not get evaluated and thus saves processing time
-	# "$action" = "down"                                       - No explanation necessary
-	
 	# `sudo docker container ls | grep "$projectname" | wc -l` - Get running containers containing $projectname in their name and count them
 	#    sudo docker container ls                              - List all running containers on this system
 	#                             grep "$projectname"          - only show running containers containing $projectname in their name
@@ -197,11 +242,14 @@ if [ -z "$customCode" ]; then
 	#    sudo docker-compose -f "docker-compose.yml" ps -q         - Get the ids of the containers belonging to "docker-compose.yml"
 	#                                                 wc -l    - count the lines returned by the last command
 	
-	if [ "$action" = "down" ] && [ `sudo docker container ls | grep "$projectname" | wc -l` -gt `sudo docker-compose -f "docker-compose.yml" ps -q | wc -l` ]; then
-		blueecho "Not turning down 'nginx' as this is what running containers from other cities depend on!"
+	if [ `sudo docker container ls | grep "$projectname" | wc -l` -gt `sudo docker-compose -f "docker-compose.yml" ps -q | wc -l` ]; then
+		if [ "$action" = "down" ] || [ "$action" = "stop" ]; then
+			blueecho "Not performing action '$action' on service 'nginx' as this is what running containers from other cities depend on!"
+		else
+			operateOnNginx 
+		fi
 	else
-		orangeecho "performing desired action '$action' on docker-compose.yml $appendTXT..."
-		sudo docker-compose -p "$projectname" -f "docker-compose.yml" $action
+		operateOnNginx
 	fi
 else
 	eval $customCode $action
@@ -210,7 +258,3 @@ fi
 if [ -n "$customDisplay" ]; then
 	eval $customDisplay
 fi
-
-# old command (not working anymore):
-# ---------------------
-#sudo docker-compose -f $maincomposefile ${composeFiles[@]} --env-file ./config.env $action

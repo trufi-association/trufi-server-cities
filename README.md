@@ -15,7 +15,7 @@ If you actually need to create the stuff e.g. the mbtiles or the graph you bette
 
 ## Concept
 
-This repository contains a bunch of service „modules“. Each "module" has a specified job and contains a README. In order to host multiple apps we also introduce the concept of a "city". Each city has a config in `./config` directory and can have a different set of "modules" enabled. For example: city 'Germany-Hamburg' can have the modules `tileserver`, `photon` and `otp` enabled. Another city 'Bolivia-Cochabamba' can have the modules `tileserver` and `otp` enabled. You see here is `photon` missing and that is completely ok. Cities are strictly taken apart from each other. They only share the same nginx instance and the same project name.
+This repository contains a bunch of service „modules“. Each "module" has a specified job and contains a README. In order to host multiple apps we also introduce the concept of a "city". Each city has a config in `./config` directory and can have a different set of "modules" enabled. For example: city 'Germany-Hamburg' can have the modules `tileserver`, `photon` and `otp` enabled. Another city 'Bolivia-Cochabamba' can have the modules `tileserver` and `otp` enabled. You see here is `photon` missing and that is completely ok. Cities are strictly taken apart from each other. They only share the same nginx instance, the same project name and the same network.
 
 ## Config
 
@@ -27,9 +27,9 @@ The config files are located inside `./config` folder, you can create a new one 
 | ---------- | ------------------ | ------------------------------------------------------------ |
 | city       | Bolivia-Cochabamba | Just `Country-City` name                                     |
 | domain     | cbba.trufi.app     | The domain name of the city. If you use the mode `virtual domains` then be creative as this variable will then not be of use but needs to be available |
-| otpversion | 1.5.0              | Put there `1.5.0` for regions running informal transport otherwise `2.0.0` |
+| otpversion | 1.5.0              | Put there `1.5.0` for regions having PTv1 schema in OSM otherwise `2.0.0` |
 
-Create a new one based on the already existing config files to get an idea of their internal structure. Do that for each city you want to host backend services for. You may want to remove the other configuration city files which are meant to provide examples.
+Create a new one based on the already existing config files to get an idea of their internal structure. Do that for each city you want to host backend services for. *You may want to remove the other configuration city files which are meant to provide examples.*
 
 ### Global
 
@@ -39,7 +39,7 @@ For other but important parameters set using the `init` script which apply globa
 | -------- | -------------- | ------------------------------------------------------------ |
 | env      | development    | Sets the execution environment. The value `development` or `production` are only valid. |
 | curmode  | virtual domain | The nginx domain structure to use. Accepted values are `virtual domain` (all cities run under the same domain) and `real domains` (each city has its own domain) |
-| intraweb | yes            | Toggles the Intraweb feature on or off. Valid values are `yes` or `no`. This feature will be turned on automatically if you told the `init` script about your plan to run this structure in production environment. And automatically turned off when told about running in a development environment. If you change the `env` variable without consulting `init` script then the value of the variable `intraweb` will not get changed |
+| intraweb | yes            | Toggles the Intraweb feature on or off. Valid values are `yes` or `no`. This feature will be turned on automatically if you told the `init` script about your plan to run this structure in production environment. And automatically turned off when told about running in a development environment. If you change the `env` variable without consulting `init` script then the value of the variable `intraweb` will not get changed.<br /><br />The script `add_module` will read this setting to know wherever to create the configuration necessary for Intraweb. |
 
  
 
@@ -50,13 +50,13 @@ You can find all in the [modules](./modules) folder. Each module has a README fi
 - **[otp](./modules/otp)**
   This is [OpenTripPlanner](https://opentripplanner.org) used to calculate the best route for the user of the app. *This service is mandatory for the app to work.*
 - **[photon](./modules/photon)**
-  This is [Photon by Komoot](https://photon.komoot.io) used to provide online search results inside the app when the user searches for a POI to navigate from or to using public transportation. *This service is optional and but in case you **don't** use it you need to build the search index on the frontend site and only @SamuelRioTz knows how that works.*
+  This is [Photon by Komoot](https://photon.komoot.io) used to provide online search results inside the app when the user searches for a POI to navigate from or to using public transportation. *This service is mandatory for the search feature of the app to work.* 
 - **[static_maps](./modules/static_maps)**
   Use this service to serve pre-generated background map tiles. *This use of the service is optional but we recommend it if you have a server which is less in resources.*
 - **[tileserver](./modules/tileserver)**
   Use this service to serve the data needed to display the background map shown in the app. This does not include the styling (e.g. a highways are yellow lines and the water blue). The styling is done on the client side.  This allows you/us to make modifications to the stylings without the need to rerender all pngs of the background map for your city. It generates the png background map tiles on the fly for clients which do not support dynamic map tiles. *This use of the service is optional and cause much CPU usage when it needs to generate background maps on the fly (this is a wrong usage of this service). Our app currently does not support client side rendering of background maps so we only recommend using this service on a server with much CPU resources.*
 
-Concerning background map tiles: Decide wethever you want to use the module *static_maps* or *tileserver*. Using both in **one** city is useless.
+Concerning background map tiles: Decide wherever you want to use the module *static_maps* or *tileserver*. Using both in **one** city is useless.
 
 ## Intraweb
 
@@ -103,6 +103,18 @@ In that case you need to run `openssl dhparam -out ./data/nginx/inc/dhparam.pem 
 #### Central HTTPS server on your host system
 
 This is useful if you are already providing other services in need of HTTPS to your customers e.g. you are already hosting a website. Now you want to have your server provide different services for different cities. Also this is your only option if your server is behind a firewall just letting port 80 and 443 pass through. Go setup nginx on your host which then does all the HTTPS stuff and takes care to redirect to the appropriate sub webservers based on specified parameters you have defined. This allows you to use this structure in development mode without any HTTPS configuration. Is that is the case you surely don’t want to miss the [Intraweb](#intraweb) feature. By default this feature will be turned off by the `init` script when telling it that you run this in a development environment. To enable it you need to change the value of the `intraweb` variable manually in the [global config](#global).
+
+#### Get HTTPS certificate (independent from your infrastructure)
+
+We created a highly flexible script to ease HTTPS certificate creation and it accounts for:
+
+- construction of the command to pass to `certbot`
+- allows to specify a `<webroot>` which allows you to specify the path to the folder where your web server on the host or in another docker container running on port `80` serves the `./well-known` from.
+- creation of a systemd timer to automatically renew the certificate
+
+**Usage:** `certify <Country-City <webroot>`
+
+**Example:** `certify Germany-Hamburg /srv/trufi/nginx/www`
 
 ### Commands
 
@@ -181,8 +193,12 @@ server up # will bring all added modules in city 'Germany-Hamburg' up (scope 'ci
   - Command: `server nginx <action>`
   - Reload nginx after its configuration has changed: `server nginx reload`
 - **To view a list of running modules**
-  - Command: `server <name of city> ls` (filtered Trufi optimised result for `docker container ls` command)
+  - Command: `server <name of city> ls` (filtered Trufi optimised result for `docker container ps` command)
   - Command: `server <name of city> ps` (native docker-compose command for every single module)
+- **To refresh services after updates to their `yml` files**
+  - Command: `server <name of city> refresh` (city scope)
+  - Command: `server refresh` (global scope)
+
 - **(production only) View logs for a module from current day**
   - Command: `viewlog <name of city> <module name>`
   - Example: `viewlog "Bolivia-Cochabamba" otp`
@@ -197,7 +213,5 @@ server up # will bring all added modules in city 'Germany-Hamburg' up (scope 'ci
 When we changed something on the repo and you pulled the new changes do the following:
 
 ```bash
-./server down # to stop all added modules in all cities + the web server and to remove them but not their images
-./server build # to rebuild all added modules in all cities + the web server and their images (overwriting the already existing ones)
-./server <name of city> start # to start all added modules in all cities + the web server
+./server refresh
 ```
