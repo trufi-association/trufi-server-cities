@@ -6,7 +6,7 @@ services:
     ports:
       - "8290:80" # HTTP
       - "8300:443" # HTTPS
-      - "8090:8090" # intraweb port. Do not let it pass through the firewall
+      - "127.0.0.1:8090:8090" # intraweb port.
     volumes:
       - ./data/nginx/interweb:/etc/nginx/interweb:ro
       - ./data/nginx/intraweb:/etc/nginx/intraweb:ro
