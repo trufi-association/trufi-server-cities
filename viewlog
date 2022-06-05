@@ -11,7 +11,7 @@ modulename="${args[0]}"
 unset args[0]
 args=( `echo "${args[@]}"` )
 
-container_name="$modulename-$city"
+containername="$modulename-$city"
 moreargs="false"
 projectname=`basename "$PWD"`
 
@@ -25,9 +25,15 @@ if [ ${#args[@]} -gt 0 ]; then
 fi
 
 if [ "$moreargs" = "false" ]; then
-	args+=( --since now )
+	args+=( --since today --follow )
 fi
 
 arguments="${args[@]}"
-orangeecho "Executing 'sudo journalctl CONTAINER_NAME=\"${projectname}_${container_name}_1\" $arguments'"
-sudo journalctl CONTAINER_NAME="${projectname}_${container_name}_1" $arguments
+
+# determining right container name
+containername="${projectname}_${containername}"
+containername=`sudo docker container ls --format "{{.Names}}"`
+containername=`echo $containername | grep $containername`
+
+orangeecho "Executing 'sudo journalctl CONTAINER_NAME=\"${containername}\" $arguments'"
+sudo journalctl CONTAINER_NAME="${containername}" $arguments

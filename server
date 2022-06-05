@@ -58,7 +58,7 @@ if [ -z "$city" ]; then
 	maxcount=5
 	for i in {0..5}; do
 		echo -ne "No city configuration specified! Action '$action' will be applied to all added modules in all cities in $((maxcount - i)) ...\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
-		sleep 1
+	#	sleep 1
 	done
 	operateInScope="global"
 	cityrelatedtext="in all cities"
@@ -129,14 +129,12 @@ _ls() {
 # $2 $action
 _refresh() {
 	#  amount of arguments passed lower than three then there weren't three arguments specified necessary to operate on specified docker-composes so
-	if [ ${#?[@]} -lt 3 ]; then
-		# assume global operation and just reload nginx configuration
-		_reloadNginxConfig
+	if [ ${#?[@]} -lt 2 ]; then
+		# assume operation on file docker-compose.yml in project root and do nothing
 		return
 	fi
 	
-	# remove '-f ' from param $1
-	local dockercomposeFile=${1//"-f "/""}
+	local dockercomposeFile=$1
 	# get services
 	local runningServices=`sudo docker-compose -p "$projectname" -f "$dockercomposeFile" ps --services`
 	local runningContainerIds=`sudo docker-compose -p "$projectname" -f "$dockercomposeFile" ps --quiet`
@@ -147,12 +145,12 @@ _refresh() {
 	# https://github.com/docker/compose/issues/1786#issuecomment-579794865
 	for ((i=0; i<${length}; i++)); do
 		orangeecho "Updating docker service '${runningServices[$i]}' of docker-compose file '$dockercomposeFile' ..."
-		sudo docker-compose up -d -p "$projectname" -f "$dockercomposeFile" --scale ${runningServices[$i]}=2 --no-recreate ${runningServices[$i]}
+		sudo docker-compose -p "$projectname" -f "$dockercomposeFile" up --detach --scale ${runningServices[$i]}=2 --no-recreate ${runningServices[$i]}
 		
 		sleep 5 # TODO: healtheck instead of waiting five seconds in hope this is enough for the startup process
 		
 		sudo docker rm -f ${runningContainerIds[$i]}
-		sudo docker-compose up -d -p "$projectname" -f "$dockercomposeFile" --scale ${runningServices[$i]}=1 --no-recreate ${runningServices[$i]}
+		sudo docker-compose -p "$projectname" -f "$dockercomposeFile" up --detach --scale ${runningServices[$i]}=1 --no-recreate ${runningServices[$i]}
 		
 	done
 }
@@ -203,7 +201,6 @@ elif [ "$action" = "ls" ]; then
 	customCode="_donothing"
 	customDisplay="_ls"
 elif [ "$action" = "refresh" ]; then
-	action="ps"
 	customCode="_refresh"
 elif [ "$action" = "log" ] || [ "$action" = "viewlog" ] ; then
 	redecho "Action '$action' no longer supported..."
@@ -220,7 +217,7 @@ for module in ${!added_city_modules[@]}; do
 		#echo "sudo docker-compose -p \"$projectname\" ${added_city_modules[$module]} $action"
 		sudo docker-compose -p "$projectname" ${added_city_modules[$module]} $action
 	else
-		eval $customCode "${added_city_modules[$module]}" "$action"
+		eval $customCode "${added_city_modules[$module]/-f/}" "$action"
 	fi
 
 	cd ../
