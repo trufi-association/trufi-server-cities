@@ -3,15 +3,6 @@
 source ./lib/colorful
 source ./lib/env
 
-usage() {
-	blueecho "USAGE 1:"
-	blueecho "./remove_module <name of env file> <name of module>"
-	blueecho "./remove_module Bolivia-Cochabamba otp"
-	blueecho "USAGE 2 (works only when \$cityfile has been set e.g. by 'export $cityfile=[...]' or by invoking '. ./workon'):"
-	blueecho "./remove_module <name of module>"
-	blueecho "./remove_module otp"
-}
-
 blueecho "1. perform some checks & normalizations ..."
 source ./lib/validation
 
