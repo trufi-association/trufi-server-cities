@@ -57,7 +57,7 @@ addModule() {
 			redecho "     Error: there is no nginx configuration for module '$modulename' available!"
 			echo "I can create a default reverse proxy configuration for you but then interweb users will be able to access all resources the module '$modulename' for city '$city' exposes through its HTTP endpoint. This can be a security thread in some circumstances as it can make functions publicly accessible you normally do not want to be. There is also the eventually that this just does not work"
 			echo "Create default reverse proxy (full expose of the module for city to the public) [y|n]"
-			read $decision
+			read decision
 			if [ "$decision" = "y" ]; then
 				orangeecho "     creating default proxy configuration for module '$modulename' of city '$city' (not recommended) ..."
 				modulenginxconf_content="location / {
