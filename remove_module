@@ -2,15 +2,6 @@
 
 source ./lib/colorful
 
-usage() {
-	blueecho "USAGE 1:"
-	blueecho "./add_module <name of env file> <name of module>"
-	blueecho "./add_module Bolivia-Cochabamba otp"
-	blueecho "USAGE 2 (works only when \$enfile has been set e.g. by 'export $cityfile=[...]' or by invoking '. ./workon'):"
-	blueecho "./add_module <name of module>"
-	blueecho "./add_module otp"
-}
-
 removeNGINXconf() {
 	local modulename="$2"
 	if [ -f "./data/nginx/${1}/${city}/${modulename}.conf" ]; then
@@ -52,7 +43,7 @@ removeModule() {
 		fi
 		blueecho "   This operation did **not** remove"
 		blueecho "   - file '$ymlFile' but set it to 'inactive'"
-		blueecho "   - and its data directory 'data_$city'"
+		blueecho "   - and also not its data directory 'data_$city'"
 	else
 		greenecho "   already set to inactive. No need to do it again :)"
 	fi
