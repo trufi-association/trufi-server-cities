@@ -14,13 +14,3 @@ else
 	nginxcityconf_template_interweb="$NGINX_CONFIGPATH_DEVSERVER"
 fi
 nginxcityconf_template_intraweb="./nginx/app.intraweb.conf"
-
-#MODE_VIRTUALDOMAINS_INDICATOR="./data/nginx/interweb/virtualdomains.conf"
-#ENV_PROD_INDICATOR="./data/.production"
-#ENV_DEV_INDICATOR="./data/.development"
-
-# 
-# 
-# if [ -d "$ENV_PROD_INDICATOR" ]; then
-# 	env="production"
-# fi

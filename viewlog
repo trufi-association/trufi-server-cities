@@ -1,39 +1,53 @@
 #!/bin/bash
 # makes sense for production only
+# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
 
 source ./lib/colorful
+projectname=`basename "$PWD"`
 
+# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
+#           ..............
 blueecho "performing some checks & normalizations ..."
 source ./lib/validation
 
+# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
+#                          ............
 modulename="${args[0]}"
-# remove elem on first index
-unset args[0]
-args=( `echo "${args[@]}"` )
+removeFirstElemInArgs
 
-containername="$modulename-$city"
-moreargs="false"
-projectname=`basename "$PWD"`
-
-if [ -z "$modulename" ]; then
-    echo 'Error: extension name as param is needed (e.g. "tileserver")' >&2
-    exit 1
+if ! [ -d "modules/$modulename" ]; then
+	redecho "Error: You specified an invalid name of a module to read log from">&2
+	echo "A list of modules available:"
+	ls -p ./modules | grep -v /
 fi
+cd "modules/$modulename"
 
-if [ ${#args[@]} -gt 0 ]; then
-	moreargs="true"
+# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
+#                                       .............
+servicename="${args[0]}"
+removeFirstElemInArgs
+allServices=`sudo docker-compose -p "$projectname" -f "${city}.yml" ps --services`
+if [ -z `echo $allServices | grep $servicename` ]; then
+	redecho "Error: You specified an invalid name of a service in module '$modulename' to read log from">&2
+	echo "A list of services in that module available:"
+	echo "$allServices"
 fi
+## remove the '<modulename>'' prefix from the console input '<servicename>' if the user has entered it. The prefix will be automatically added later
+serviceprefix="${modulename}-"
+servicename=${servicename/$serviceprefix/""}
 
-if [ "$moreargs" = "false" ]; then
-	args+=( --since today --follow )
+# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
+#                                                     ............
+if [ ${#args[@]} -eq 0 ]; then
+	args+=( "--since today --follow" )
 fi
-
 arguments="${args[@]}"
 
-# determining right container name
-containername="${projectname}_${containername}"
-containername=`sudo docker container ls --format "{{.Names}}"`
-containername=`echo $containername | grep $containername`
+# determining full qualified container name
+containername="${projectname}_${modulename}-${servicename}"
+namesOfAllContainers=`sudo docker container ls --all --format "{{.Names}}"`
+containername=`echo $namesOfAllContainers | grep $containername`
 
+# Executing journalctl command to get the logs
 orangeecho "Executing 'sudo journalctl CONTAINER_NAME=\"${containername}\" $arguments'"
 sudo journalctl CONTAINER_NAME="${containername}" $arguments

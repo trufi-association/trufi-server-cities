@@ -1,0 +1,13 @@
+#!/bin/bash
+invokePlugins() {
+	local pluginDir="plugins"
+	if [ -d "plugins/$1" ]; then
+		for script in `ls "plugins/$1"`; do
+			if [ -n `echo $script | grep ".sh"` ]; then
+				source "plugins/$1/$script"
+			else
+				./plugins/$1/$script
+			fi
+		done
+	fi
+}

@@ -3,17 +3,17 @@
 # environment and mode
 args=( $@ )
 source ./lib/env
+source ./lib/utils
 
 # validations
 
 ## if $cityfile is empty but a valid city configuration name has been provided
 if [ -z "$cityfile" ] && [ -f "./config/${args[0]/".env"/""}.env" ]; then
 	envname=${args[0]//".env"/""}
-	export cityfile="./config/$envname.env"
+	cityfile="./config/$envname.env"
+#	export cityfile="./config/$envname.env"
 	
-	# remove elem on first index
-	unset args[0]
-	args=( `echo "${args[@]}"` )
+	removeFirstElemInArgs
 fi
 
 ## if $cityfile contains something but the $city environment variable hasn't been populated

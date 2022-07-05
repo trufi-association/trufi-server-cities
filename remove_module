@@ -1,7 +1,12 @@
 #!/bin/bash
 
+projectname=`basename "$PWD"`
+
 source ./lib/colorful
 
+# Removes all occurrence of a configuration e.g. to make intraweb work
+# removeNGINXconf <folder in 'data/nginx' to operate on> <modulename>
+# e.g. removeNGINXconf intraweb tileserver
 removeNGINXconf() {
 	local modulename="$2"
 	if [ -f "./data/nginx/${1}/${city}/${modulename}.conf" ]; then
@@ -9,7 +14,7 @@ removeNGINXconf() {
 		rm "./data/nginx/${1}/${city}/${modulename}.conf" --verbose
 	fi
 
-	if [ -d "./data/nginx/${1}/${city}" ] && [ -z `dir "./data/nginx/${1}/${city}"` ]; then
+	if [ -d "./data/nginx/${1}/${city}" ] && [ -z `ls "./data/nginx/${1}/${city}"` ]; then
 		orangeecho "   removing nginx configuration of city '$city' because it's empty now ..."
 		rm -R "./data/nginx/${1}/${city}" --verbose
 		if [ -f "./data/nginx/${1}/${city}.conf" ]; then
@@ -24,6 +29,10 @@ source ./lib/validation
 
 removeModule() {
 	local modulename="$1"
+
+	blueecho "1. Turning down module '$modulename' of city '$city'"
+	./server "$city" down "$modulename"
+
 	blueecho "2. deactivate module '$modulename' in city '$city'"
 	
 	ymlFile="$moduleDir/$city.yml"
@@ -31,10 +40,6 @@ removeModule() {
 	
 	if [ -f "$ymlFile" ]; then
 		orangeecho "   setting module in directory '$moduleDir' to inactive ..."
-		
-		cd $moduleDir
-		sudo docker-compose -f "$city.yml" down
-		cd ../../
 	
 		mv "$ymlFile" "$ymlFileInactive" --verbose
 		if ! [ -f "$ymlFileInactive" ]; then
@@ -55,17 +60,15 @@ removeModule() {
 		removeNGINXconf "intraweb" "$modulename"
 	fi
 	
+	source "lib/plugin"
+	invokePlugins "remove_module"
+
 	greenecho "removed trufi module '$modulename' from city '$city'"
 }
 
 for module in "${args[@]}"; do
 	moduleDir="./modules/$module"
 	if [ -z "$module" ]; then
-		continue
-	fi
-	#if $modulename is empty or $moduleDir does not exist
-	if ! [ -d "$moduleDir" ]; then
-		orangeecho "WARNING: Module '$module' does not exist, ignoring ..."
 		continue
 	fi
 	echo

@@ -16,7 +16,7 @@ workon_optionalvariables=( "email" )
 if [ -z "$enfile" ] && [ -z "$1" ]; then
 	redecho "No city file to load found. \033[0;mExecute '\033[0;34m. ./workon <name of env file>\033[0;m'"
 	echo "List of available city files:"
-	dir config
+	ls config
 	return
 fi
 
@@ -89,7 +89,7 @@ echo -e "\033[0;34madd\033[0;m          alias to \033[0;36m./add_module\033[0;m"
 echo -e "\033[0;34mremove\033[0;m       alias to \033[0;36m./remove_module\033[0;m"
 echo -e "\033[0;34mserver\033[0;m       alias to \033[0;36m./server\033[0;m"
 echo -e "\033[0;34mviewlog\033[0;m      alias to \033[0;36m./viewlog\033[0;m"
-echo -e "\033[0;34mrestart\033[0;m      alias to \033[0;36m./restart_module\033[0;m"
+echo -e "\033[0;34mrestart\033[0;m      alias to \033[0;36m./restart_module\033[0;m (deprecated)"
 echo -e "\033[0;34mworkon\033[0;m       alias to \033[0;36m. ./workon\033[0;m (this script)"
 echo "other commands work as expected"
 echo

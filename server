@@ -1,7 +1,8 @@
 #!/bin/bash
-
+# server [city] action [module] [actionargs]
 source ./lib/colorful
 source ./lib/env
+source ./lib/utils
 
 # Run added modules (this will be automatically normalized to 'up --detach' before passing to docker-compose)
 # ---------------------
@@ -33,225 +34,218 @@ source ./lib/env
 
 # other commands that docker-compose accepts
 
-args=( $@ )
-operateInScope=""
-
-declare -A added_city_modules
-module_dockercompose_city="$city.yml"
-
-body=()
+# Initalize and validate
 projectname=`basename "$PWD"`
-action="${args[0]}"
-customCode=""
-customDisplay=""
+args=( $@ )
 
-# remove elem from array 'args' on first index
-unset args[0]
-args=( `echo "${args[@]}"` )
+declare -A modulesPerCity
 
-# if the first argument is a valid city configuration file and provided in the form 'Country-City' or 'Country-City.env'
-if [ -f "./config/${args[0]/'.env'/''}.env" ]; then # export the variables in the city configuration file
-	export $(cat ../$envfile | xargs)
-fi
-
-if [ -z "$city" ]; then
-	maxcount=5
-	for i in {0..5}; do
-		echo -ne "No city configuration specified! Action '$action' will be applied to all added modules in all cities in $((maxcount - i)) ...\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
-	#	sleep 1
-	done
-	operateInScope="global"
-	cityrelatedtext="in all cities"
-	# list all added modules in all cities
-	listAddedModules() {
-		for item in `dir "$1"`;
-		do
-			local addedModules=""
-			for content in `dir "$1/$item"`;
-			do
-				if ! [ "$content" == "docker-compose.yml" ] && [[ "$content" == *.yml ]] && [ -f "$1/$item/$content" ]; then
-					addedModules+=" -f $content"
-				fi
-			done
-			if [ -n "$addedModules" ]; then
-				added_city_modules[$item]="$addedModules"
-			fi
-		done
-	}
-else
-	operateInScope="city"
-	cityrelatedtext="in city '$city'"
-	# list all added modules for the current city
-	listAddedModules() {
-		for item in `dir "$1"`;
-		do
-			if [ -f "$1/$item/$module_dockercompose_city" ]; then
-				added_city_modules[$item]="-f $module_dockercompose_city"
-			fi
-		done
-	}
-fi
-
-_reloadNginxConfig() {
-	orangeecho "reloading nginx configuration without the need to restart nginx ..."
-	sudo docker-compose -p "$projectname" -f "docker-compose.yml" exec nginx nginx -s reload
-}
-
-_donothing() {
-	return 0
-}
-
-_ls() {
-	heading=()
-	line=1
-	IFS="
-"
-	result=`sudo docker container ls`
-	result=( $result )
-	for i in "${result[@]}"; do
-		if (( $line > 1 )); then
-			belongstoproject=`echo $i | grep "$projectname" | grep "$city"`
-			isNginx=`echo $i | grep "$projectname" | grep "nginx"`
-			if [ -n "$belongstoproject" ] || [ -n "$isNginx" ]; then
-				body+=($i)
-			fi
-		else
-			heading+=($i)
-		fi
-		line=$(($line+1))
-	done
-	
-	printArrayLineByLine
-}
-
-# a customCode and therefore getting parameters:
-# $1 name of docker-compose file
-# $2 $action
-_refresh() {
-	#  amount of arguments passed lower than three then there weren't three arguments specified necessary to operate on specified docker-composes so
-	if [ ${#?[@]} -lt 2 ]; then
-		# assume operation on file docker-compose.yml in project root and do nothing
-		return
-	fi
-	
-	local dockercomposeFile=$1
-	# get services
-	local runningServices=`sudo docker-compose -p "$projectname" -f "$dockercomposeFile" ps --services`
-	local runningContainerIds=`sudo docker-compose -p "$projectname" -f "$dockercomposeFile" ps --quiet`
-	local runningServices=( $runningServices )
-	local runningContainerIds=( $runningContainerIds )
-	local length=${#runningServices[@]}
-	
-	# https://github.com/docker/compose/issues/1786#issuecomment-579794865
-	for ((i=0; i<${length}; i++)); do
-		orangeecho "Updating docker service '${runningServices[$i]}' of docker-compose file '$dockercomposeFile' ..."
-		sudo docker-compose -p "$projectname" -f "$dockercomposeFile" up --detach --scale ${runningServices[$i]}=2 --no-recreate ${runningServices[$i]}
-		
-		sleep 5 # TODO: healtheck instead of waiting five seconds in hope this is enough for the startup process
-		
-		sudo docker rm -f ${runningContainerIds[$i]}
-		sudo docker-compose -p "$projectname" -f "$dockercomposeFile" up --detach --scale ${runningServices[$i]}=1 --no-recreate ${runningServices[$i]}
-		
-	done
-}
-
-printArrayLineByLine() {
-	for i in "${heading[@]}"; do
-		echo "$i"
-	done
-
-	for i in "${body[@]}"; do
-		echo "$i"
-	done
-
-}
-
-operateOnNginx() {
-	orangeecho "performing desired action '$action' on docker-compose.yml $appendTXT..."
-	sudo docker-compose -p "$projectname" -f "docker-compose.yml" $action
-}
-
-
-if ! [ "$operateInScope" = "global" ]; then
+## if the first argument is a valid city configuration file and provided in the form 'Country-City' or 'Country-City.env'
+## e.g.: server [city] action [module] [actionargs]
+##               ....
+cityScope="all"
+envfile="${args[0]/'.env'/''}.env"
+if [ -f "./config/$envfile" ]; then # export the variables in the city configuration file
+	export $(cat ./config/$envfile | xargs)
+	cityScope="city"
 	blueecho "performing some checks & normalizations ..."
-	source ./lib/validation
+	source ./lib/validation # will re-init variable 'args' and will normalize it with self-provided function 'removeFirstElemInArgs'
+	curCity="$city" # only to provide analog behaviour to the comming 'curAction', 'curModule' and 'curActionArgs' variables but not needed for this architecture to work properly except for plugins using 'curCity'
 fi
 
-# if action 'nginx' specified then overwrite normal behaviour of this script
-if [ "$action" = "nginx" ]; then
-	blueecho "will only operate on 'nginx'"
-	action="${args[@]}"
-	listAddedModules() {
-		true
-	}
-	if [ "$action" = "reload" ]; then
-		_reloadNginxConfig
-		greenecho "OK"
-		exit 0
-	fi
+if [ ${#args[@]} -eq 0 ]; then
+	redecho "Error: Not enough arguments!"
+	echo "USAGE: ./server [city] action [module] [actionargs]"
+	echo ""
+	echo "[city]         Optional, name of city e.g. Bolivia-Cochabamba"
+	echo "action         Required, name of the action to execute/perform e.g. 'start'"
+	echo "[module]       Optional, name of the module to execute/perform action against e.g. 'tileserver'"
+	echo "[actionargs]   Optional, additional arguments for the action to execute/perform e.g. '--build --detach' for action 'up'"
+	exit 1
 fi
 
-if [ "$action" = "run" ] || [ "$action" = "up" ]; then
-	orangeecho "deprefixing command to a valid docker-compose command ..."
-	action="up --build --detach"
-	unset $2
-elif [ "$action" = "ls" ]; then
-	orangeecho "list the running containers of each module $cityrelatedtext all at once (nginx will be always included) ..."
-	action="ps"
-	customCode="_donothing"
-	customDisplay="_ls"
-elif [ "$action" = "refresh" ]; then
-	customCode="_refresh"
-elif [ "$action" = "log" ] || [ "$action" = "viewlog" ] ; then
-	redecho "Action '$action' no longer supported..."
-fi
+## e.g.: server [city] action [module] [actionargs]
+##                     ......
+curAction="${args[0]}"
+action="$curAction"
+removeFirstElemInArgs
+## e.g.: server [city] action [module] [actionargs]
+##                            ........
+#if [ -n "${args[0]}" ] && [ -d "./modules/${args[0]}" ]; then
+curModule="${args[0]}"
+removeFirstElemInArgs
+#fi
+## e.g.: server [city] action [module] [actionargs]
+##                                     ............
+curActionArgs="${args[@]}"
 
-listAddedModules "modules" # the directories in 'modules' represent the names of the modules
-
-cd modules
-for module in ${!added_city_modules[@]}; do
-	cd "$module"
-	
-	if [ -z "$customCode" ]; then
-		orangeecho "performing desired action '$action' on module '$module' $cityrelatedtext ..."
-		#echo "sudo docker-compose -p \"$projectname\" ${added_city_modules[$module]} $action"
-		sudo docker-compose -p "$projectname" ${added_city_modules[$module]} $action
-	else
-		eval $customCode "${added_city_modules[$module]/-f/}" "$action"
+# Define the core
+## iterators
+### perform on all cities of a module
+iterateThroughAllCitiesOfModule() {
+	cd "modules/$1"
+	addedCities=""
+	if ! [ "$2" = "noexecute" ]; then
+		orangeecho "performing desired action '$curAction' of module '$1' in city ..."
 	fi
-
-	cd ../
-done
-cd ../
-
-
-if [ -z "$customCode" ]; then
-	appendTXT=""
-	if [ "$action" = "down" ]; then
-		appendTXT="because there is no container for any city running "
-	fi
-	# `sudo docker container ls | grep "$projectname" | wc -l` - Get running containers containing $projectname in their name and count them
-	#    sudo docker container ls                              - List all running containers on this system
-	#                             grep "$projectname"          - only show running containers containing $projectname in their name
-	#                                                  wc -l   - count the lines returned by the last command
-
-	# sudo docker-compose -f "docker-compose.yml" ps -q | wc -l`   - Get running containers belonging to "docker-compose.yml" and count them
-	#    sudo docker-compose -f "docker-compose.yml" ps -q         - Get the ids of the containers belonging to "docker-compose.yml"
-	#                                                 wc -l    - count the lines returned by the last command
-	
-	if [ `sudo docker container ls | grep "$projectname" | wc -l` -gt `sudo docker-compose -f "docker-compose.yml" ps -q | wc -l` ]; then
-		if [ "$action" = "down" ] || [ "$action" = "stop" ]; then
-			blueecho "Not performing action '$action' on service 'nginx' as this is what running containers from other cities depend on!"
-		else
-			operateOnNginx 
+	for composeFile in `ls | grep .yml`; do
+		if ! [ "$composeFile" = "docker-compose.yml" ] && [[ "$composeFile" == *.yml ]] && [ -f "$composeFile" ]; then
+			addedCities+="${composeFile/'.yml'/''} "
+			if ! [ "$2" = "noexecute" ]; then
+				orangeecho "  - ${composeFile/'.yml'/''} ..."
+				sudo docker-compose -p "${projectname}" -f "${composeFile}" $curAction $curActionArgs
+			fi
 		fi
-	else
-		operateOnNginx
+	done
+	modulesPerCity[$1]=$addedCities
+	cd "../../"
+}
+
+### perform on all modules in a city
+iterateThroughAllModulesInCity() {
+	cd modules
+	if ! [ "$2" = "noexecute" ]; then
+		orangeecho "performing desired action '$curAction' in city '$1' on module"
 	fi
-else
-	eval $customCode $action
+	for module in `ls -p ./ | grep /`; do
+		module=${module/\//""}
+		cd "$module"
+		if [ -f "$1.yml" ]; then
+			modulesPerCity[$module]="$1"
+			if ! [ "$2" = "noexecute" ]; then
+				orangeecho "  - $module ..."
+				#                        <projectname>_<modulename>
+				# e.g.                   city-services_tileserver
+				sudo docker-compose -p "${projectname}" -f "$1.yml" $curAction $curActionArgs
+			fi
+		fi
+
+		cd ../
+	done
+	cd ../
+}
+
+### perform on all modules in all cities
+iterateThroughEverything() {
+	for module in `ls -p modules | grep /`; do
+		local module=${module/\//""}
+		iterateThroughAllCitiesOfModule $module $1
+	done
+}
+
+### determine iteration strategy to use and call it
+performIteration() {
+	if [ "$cityScope" = "all" ] && [ -z "$curModule" ]; then # no city and no module have been specified (perform on all modules in all cities)
+		# server action
+		iterateThroughEverything $1 # perform on all modules in all cities
+	elif [ "$cityScope" = "all" ] && [ -n "$curModule" ]; then # no city but a module have been specified
+		# server action module [actionargs]
+		iterateThroughAllCitiesOfModule $curModule $1 # perform on all cities of a module
+	elif [ "$cityScope" = "city" ] && [ -z "$curModule" ]; then # a city but no module have been specified
+		# server city action
+		iterateThroughAllModulesInCity $city $1 # perform on all modules in current city
+	elif [ "$cityScope" = "city" ] && [ -n "$curModule" ]; then # a city and a module have been specified
+		# server city action module [actionargs]
+		if [ "$1" = "noexecute" ]; then
+			modulesPerCity[$curModule]="$city"
+		else
+			cd "modules/$curModule"
+
+			orangeecho "performing desired action '$curAction' on module '$curModule' in city '$city' ..."
+			#                        <projectname>_<modulename>
+			# e.g.                   city-services_tileserver
+			sudo docker-compose -p "${projectname}" -f "$city.yml" $curAction $curActionArgs
+
+			cd "../../"
+		fi
+	else # if this else gets called then it means something is wrong with the code
+		redecho "Error: Action '$action' couldn't be run as an iteration strategy to perform couldn't be found!"
+	fi
+}
+
+## attention please prompt
+attentionPrompt() {
+	local reason="$1"
+	local cityrelatedtext=""
+	if [ -z "$reason" ]; then
+		reason="(no reason provided)"
+	fi
+	redecho "----------------------------------------"
+	echo -e "The action '$curAction' asks for\033[1;m your approval\033[0;m before continuing! There must be a\033[0;31m dangerous situation\033[0;m it wants you to be aware of"
+	echo -e "Reason: \033[0;34m${reason}\033[0;m"
+	echo -e "\033[1;37mExecution details:\033[0;m"
+	echo -e "Scope: \033[0;34m${cityScope}\033[0;m"
+	if [ "$cityScope" = "city" ]; then
+		echo -e "Affected city: \033[0;34m${city}\033[0;m"
+		local cityrelatedtext=" in city '$city'"
+	else
+		echo -e "Affected city: \033[0;34m(action will be applied to all cities when approving)\033[0;m"
+	fi
+	if [ -n "$curModule" ]; then
+		echo -e "Affected module: \033[0;34m${curModule}\033[0;m"
+	else
+		echo -e "Affected module: \033[0;34m(action will be applied to all modules${cityrelatedtext} when approving)\033[0;m"
+	fi
+	echo -e "Action: \033[0;34m${curAction}\033[0;m"
+	echo -e "Action arguments: \033[0;34m${curActionArgs}\033[0;m"
+	echo -e "Current date and time: \033[0;34m$(date)\033[0;m"
+	redecho "----------------------------------------"
+	
+	decide() {
+		echo -ne "\033[0;35mYour decision [y|n]:\033[0;m \033[0;34m"
+		read decision
+		if [ "$decision" = "n" ]; then
+			greenecho "Action '$curAction' has been interrupted at your request. Nothing dangerous has been executed!"
+			echo "Script interrupted by user"
+			exit 2
+		elif [ "$decision" = "y" ]; then
+			orangeecho "Execution of action '$curAction' continues!"
+			return
+		else
+			redecho "Invalid input. Only 'y' and 'n' (case-sensitive) counts!"
+			decide
+		fi
+	}
+	decide
+}
+
+# Call actions (made by plugins)
+if [ -f "./plugins/server/$curAction" ]; then
+	source ./plugins/server/$curAction
+elif [ "$curAction" = "down" ] || [ "$curAction" = "stop" ]; then
+	attentionPrompt "Are you sure that nothing depends on the modules you want to perform action '$curAction' on?"
+	performIteration
+else # no additional behaviour defined so pass to docker-compose directly
+	performIteration
 fi
 
-if [ -n "$customDisplay" ]; then
-	eval $customDisplay
+# Determine if there are still running services after certain action has been performed
+## Difference between 'grep "${projectname}-chief"' and '-p "${projectname}"':
+## grep "${projectname}-chief": This is a combination of the project name being the same for all modules and all chiefs running under this structure AND the prefix of the service names in the docker-compose.yml
+## -p "${projectname}": This is the project name of the structure itself. It is being the same for all modules and all chiefs running under this structure
+runningServices=`sudo docker container ls | grep "${projectname}" | wc -l` # count running services including the chief ones
+allServiceContainers=`sudo docker container ls --all | grep "${projectname}" | wc -l` # count all services including the chief ones
+runningChiefs=`sudo docker container ls | grep "${projectname}_chief-" | wc -l` # count running chiefs
+allChiefContainers=`sudo docker container ls --all | grep "${projectname}_chief-" | wc -l`
+allChiefsAvailable=`sudo docker-compose -p "${projectname}" -f docker-compose.yml ps --services | wc -l` # count all chiefs
+## if no service is running (except the chiefs)
+if [ 0 -eq $((runningServices-runningChiefs)) ]; then
+	### check if they have been removed completely (except the chiefs)
+	if [ 0 -eq $((allServiceContainers-runningChiefs)) ]; then # also stop and remove all chiefs
+		orangeecho "turning down chiefs as there are no docker containers left ..."
+		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" down # so we can even turn down and remove the chief ones
+	else ### not all services have been removed but they have been stopped (chiefs not counted in)
+		orangeecho "stopping chiefs as there are only stopped containers ..."
+		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" stop # so we just stop the chiefs
+	fi
+else ## if services are running (chiefs not counted in)
+	### if amount of chiefs having containers is greater than the amount of running ones
+	if [ $allChiefContainers -gt $runningChiefs ]; then
+		orangeecho "start chiefs as there are running docker containers ..."
+		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" start # start them all
+	### if amount of chiefs (including ones without a container) is greater than the amount of existing chief containers
+	elif [ $allChiefsAvailable -gt $allChiefContainers ]; then
+		orangeecho "turning up chiefs as there are running docker containers ..."
+		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" up --build --detach # wire up the missing chiefs
+	fi
 fi

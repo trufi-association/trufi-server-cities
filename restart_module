@@ -4,6 +4,8 @@ projectname=`basename "$PWD"`
 
 source ./lib/colorful
 
+orangeecho "This script has been deprecated and will be removed in the next major release v3.0.0"
+
 blueecho "performing some checks & normalizations ..."
 source ./lib/validation
 
@@ -13,7 +15,7 @@ moduleDir="./modules/$modulename"
 if [ -z $modulename ] || ! [ -d "$moduleDir" ]; then
 	redecho "  Error: You must specify a valid name of an module to add to city '$city'">&2
 	echo "  A list of modules available:"
-	dir ./modules
+	ls -p ./modules | grep -v /
 	exit 1
 elif [ -f "$moduleDir/$city.yml.inactive" ]; then
 	redecho "  Module '$modulename' inactive in city '$city'. Inactive modules cannot be restarted!"
@@ -21,5 +23,5 @@ elif [ -f "$moduleDir/$city.yml.inactive" ]; then
 fi
 
 cd "$moduleDir"
-sudo docker-compose -p "$projectname" -f "$city.yml" --env-file ../../$cityfile restart
+sudo docker-compose -p "${projectname}" -f "$city.yml" --env-file ../../$cityfile restart
 cd ../../
