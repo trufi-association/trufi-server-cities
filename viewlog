@@ -44,9 +44,9 @@ fi
 arguments="${args[@]}"
 
 # determining full qualified container name
-containername="${projectname}_${modulename}-${servicename}"
+containername="${projectname}_${modulename}-${servicename}-${city,,}"
 namesOfAllContainers=`sudo docker container ls --all --format "{{.Names}}"`
-containername=`echo $namesOfAllContainers | grep $containername`
+containername=`echo "$namesOfAllContainers" | grep $containername`
 
 # Executing journalctl command to get the logs
 orangeecho "Executing 'sudo journalctl CONTAINER_NAME=\"${containername}\" $arguments'"
