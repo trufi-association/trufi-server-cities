@@ -49,10 +49,9 @@ addModule() {
 	nginxcityconf="$nginxcityfolder.conf" # e.g. './data/nginx/interweb/Germany-Hamburg.conf'
 	# This file to be created will contain the altered nginx reverse proxy configuration for the module '$modulename' e.g. 'tileserver' 
 	nginxcitymoduleconf="$nginxcityfolder/$modulename.conf" # e.g. './data/nginx/interweb/Germany-Hamburg/tileserver.conf'
-	# This file should better exist for the safety of the backend and to ensure that traffic redirection to that module works
+	# This file ensures that traffic redirection to that module works
 	modulenginxconf="$moduleDir/nginx.conf" # e.g. './modules/tileserver/nginx.conf'
 	
-	echo "$nginxcityconf"
 	# if a nginx reverse proxy configuration exists for this module
 	if [ -f "$modulenginxconf" ]; then # read it into memory (to be able to alter it later)
 		modulenginxconf_content=`cat "$modulenginxconf"`
