@@ -57,7 +57,7 @@ for i in {1..2}; do
 	echo -ne "showing prompt in $((maxcount - i)) ...\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
 	sleep 1
 done
-echo -e "Do you want to process? (y|n):\033[0;34m"
+echo -ne "Do you want to process? (y|n):\033[0;34m "
 read decision
 checkDecision $decision "y"
 echo -en "\033[0;m"
@@ -87,27 +87,36 @@ rm -r $module_dir/nginx-*
 python3 modifyComposes.py
 
 greenecho "   Modules downloaded!"
-blueecho "2. Specify environment"
-echo -e "Choose environment [prod|dev]:\033[0;34m"
+blueecho "2. Turn SSL on? This is recommended if clients directly communicate with this backend without a SSL enabled proxy between"
+echo -ne "[y|n]:\033[0;34m "
 read decision
 echo -ne "\033[0;m"
-if [ $decision = "prod" ]; then
-	environment="production"
-	ENVIRONMENT="PRODUCTION"
-	nginxconf="./nginx/app.template.conf"
-	intraweb="yes"
+if [ $decision = "y" ]; then
+	ssl="yes"
+	nginxconf="./nginx/app.ssl.conf"
 elif [ $decision = "dev" ]; then
-	environment="development"
-	ENVIRONMENT="DEVELOPMENT"
-	nginxconf="./nginx/app.dev.conf"
+	ssl="no"
+	nginxconf="./nginx/app.nossl.conf"
+else
+	redecho "Error: invalid input"
+	exit 1
+fi
+
+blueecho "3. Turn on feature 'Intraweb' to wire up a intraweb for sysadmins with access to this server can use for troubleshooting modules etc.?"
+echo "This intraweb is only accessible through SSH (thanks to SSH port forwarding)"
+echo -ne "[y|n]:\033[0;34m "
+read decision
+echo -ne "\033[0;m"
+if [ $decision = "y" ]; then
+	intraweb="yes"
+elif [ $decision = "n" ]; then
 	intraweb="no"
 else
 	redecho "Error: invalid input"
 	exit 1
 fi
 
-blueecho "3. Specify mode"
-
+blueecho "4. Specify mode"
 MODE_REALDOMAINS="real domains"
 MODE_VIRTUALDOMAINS="virtual domains"
 CURMODE=""
@@ -159,7 +168,7 @@ fi
 
 blueecho "4. Save & load configuration"
 # save
-echo "env=\"$environment\"
+echo "ssl=\"$ssl\"
 curmode=\"$CURMODE\"
 intraweb=\"$intraweb\"">"./data/instance.conf"
 # load
@@ -169,18 +178,14 @@ blueecho "5. NGINX configuration"
 orangeecho "   preparing nginx configuration ..."
 dest="./data/nginx/interweb/virtualdomains.conf"
 if ! [ -f "$dest" ] && [ "$CURMODE" = "$MODE_VIRTUALDOMAINS" ]; then
-	if [ "$enviroment" = "production" ]; then
-		echo "Please tell me the domain name. This can be changed later by editing the '$dest' file"
-		read decision
-		orangeecho "     Setting domain '$decision' ..."
-		destcontent=`echo "$destcontent" | sed "s/example.org/$decision/"`
-		domain="$decision"
-	else
-		orangeecho "     Setting domain '$hostname' since we are in 'development' mode (this can be changed later by editing the '$dest' file) ..."
-		destcontent=`echo "$destcontent" | sed "s/example.org/$hostname/"`
-		domain="$hostname"
-	fi
-	orangeecho "     adding $environment virtual server ..."
+	echo "Please tell me the domain name. This can be changed later by editing the '$dest' file"
+	read decision
+	
+	orangeecho "     Setting domain '$decision' ..."
+	destcontent=`echo "$destcontent" | sed "s/example.org/$decision/"`
+	domain="$decision"
+	
+	orangeecho "     adding virtual server ..."
 	sed "s/# modules/# modules of all cities all using this single virtual server configuration\ninclude \/etc\/nginx\/interweb\/*\/\*.conf\;/" "$nginxcityconf_template_interweb" | sed "s/example.org/$domain/g" > "$dest"
 	mkdir -p "./data/logs/nginx/$domain"
 
@@ -196,7 +201,7 @@ greenecho "[DONE]   Setup for '$name'   "
 greenecho "#################### END ################################"
 echo
 greenecho "Current configuration:"
-echo "Environment       : $environment"
+echo "SSL enabled       : $ssl"
 echo "Mode              : $CURMODE"
 echo "Domain            : $domain"
 echo "Intraweb activated: $intraweb"
