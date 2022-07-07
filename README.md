@@ -15,7 +15,13 @@ If you actually need to create the stuff e.g. the mbtiles or the graph you bette
 
 ## Concept
 
-This repository contains a bunch of service „modules“. Each "module" has a specified job and contains a README. In order to host multiple apps we also introduce the concept of a "city". Each city has a config in `./config` directory and can have a different set of "modules" enabled. For example: city 'Germany-Hamburg' can have the modules `tileserver`, `photon` and `otp` enabled. Another city 'Bolivia-Cochabamba' can have the modules `tileserver` and `otp` enabled. You see here is `photon` missing and that is completely ok. Cities are strictly taken apart from each other. They only share the same nginx instance, the same project name and the same network.
+This repository contains a bunch of service „modules“. Each "module" has "services" and contains a README. Each service has a specified job and deals as a module component.
+
+In order to be able to host multiple instances of a modules we also introduce the concept of a "city". Each city has a config in `./config` directory and can have a different set of "modules" enabled. For example: city 'Germany-Hamburg' can have the modules `tileserver`, `photon` and `otp` enabled. Another city 'Bolivia-Cochabamba' can have the modules `tileserver` and `otp` enabled. You see here is `photon` missing and that is completely ok. Cities are strictly taken apart from each other.
+
+At last we introduce "chiefs" which are all services specified in the `docker-compose.yml` at project root. They don't share the concept of modules and cities. As they don't share this concept you cannot add/remove them in the classical way with `add_module`/`remove_module`. Instead they will be ruled by `server` which creates/removes/starts/stops them automatically depending on what you do with the modules.
+
+[Extending Trufi Multi-Instance Server - add/remove chiefs](./docs/extend.md#chiefs)
 
 ## Config
 
@@ -46,17 +52,6 @@ For other but important parameters which apply globally to all cities, we use a 
 ## Modules
 
 You can find all in the [modules](./modules) folder. Each module has a README file with more detailed info.
-
-- **[otp](./modules/otp)**
-  This is [OpenTripPlanner](https://opentripplanner.org) used to calculate the best route for the user of the app. *This service is mandatory for the app to work.*
-- **[photon](./modules/photon)**
-  This is [Photon by Komoot](https://photon.komoot.io) used to provide online search results inside the app when the user searches for a POI to navigate from or to using public transportation. *This service is mandatory for the search feature of the app to work.* 
-- **[static_maps](./modules/static_maps)**
-  Use this service to serve pre-generated background map tiles. *This use of the service is optional but we recommend it if you have a server which is less in resources.*
-- **[tileserver](./modules/tileserver)**
-  Use this service to serve the data needed to display the background map shown in the app. This does not include the styling (e.g. a highways are yellow lines and the water blue). The styling is done on the client side.  This allows you/us to make modifications to the stylings without the need to rerender all pngs of the background map for your city. It generates the png background map tiles on the fly for clients which do not support dynamic map tiles. *This use of the service is optional and cause much CPU usage when it needs to generate background maps on the fly (this is a wrong usage of this service). Our app currently does not support client side rendering of background maps so we only recommend using this service on a server with much CPU resources.*
-
-Concerning background map tiles: Decide wherever you want to use the module *static_maps* or *tileserver*. Using both in **one** city is useless.
 
 In order to add more modules compatible to [trufi-server-modules](https://github.com/trufi-association/trufi-server-modules) like [tsm-locaco](https://github.com/trufi-association/tsm-locaco) you just have to do a `git clone` inside the `module` folder, to execute `modifyComposes.py` and to work with it as you did with the other modules pre-installed.
 
@@ -113,11 +108,3 @@ We created a highly flexible script to ease HTTPS certificate creation and it ac
 ### Commands
 
 For a list of available commands see the [command documentation](./docs/commands/README.md)
-
-#### After upgrade
-
-When we changed something on the repo and you pulled the new changes do the following:
-
-```bash
-./server refresh
-```
