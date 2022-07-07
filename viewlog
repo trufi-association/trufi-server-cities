@@ -2,39 +2,55 @@
 # makes sense for production only
 # ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
 
+args=( $@ )
+
 source ./lib/colorful
+source ./lib/utils
 projectname=`basename "$PWD"`
 
-# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
+# ./viewlog [<Country-City>] [<modulename>] <servicename> [<moreargs>]
 #           ..............
-blueecho "performing some checks & normalizations ..."
-source ./lib/validation
-
+envfile="${args[0]/'.env'/''}.env"
+if [ -f "./config/$envfile" ]; then # export the variables in the city configuration file
+	blueecho "performing some checks & normalizations ..."
+	source ./lib/validation
+fi
 # ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
 #                          ............
 modulename="${args[0]}"
 removeFirstElemInArgs
-
-if ! [ -d "modules/$modulename" ]; then
-	redecho "Error: You specified an invalid name of a module to read log from">&2
-	echo "A list of modules available:"
-	ls -p ./modules | grep -v /
+if [ -n "$city" ]; then
+	if ! [ -d "modules/$modulename" ]; then
+		redecho "Error: You specified an invalid name of a module to read log from">&2
+		echo "A list of modules available:"
+		ls -p ./modules | grep -v /
+	fi
 fi
-cd "modules/$modulename"
 
 # ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
 #                                       .............
 servicename="${args[0]}"
 removeFirstElemInArgs
-allServices=`sudo docker-compose -p "$projectname" -f "${city}.yml" ps --services`
+	
+## remove the '<modulename>'' prefix from the console input '<servicename>' if the user has entered it. The prefix will be automatically added later
+serviceprefix="${modulename}-"
+servicename=${servicename/$serviceprefix/""}
+
+if [ -n "$city" ]; then
+	cd "modules/$modulename"
+	allServices=`sudo docker-compose -p "$projectname" -f "${city}.yml" ps --services`
+	cd "../../"
+else
+	serviceame="${args[0]}"
+	removeFirstElemInArgs
+	allServices=`sudo docker-compose -p "$projectname" -f "docker-compose.yml" ps --services`
+fi
 if [ -z `echo $allServices | grep $servicename` ]; then
 	redecho "Error: You specified an invalid name of a service in module '$modulename' to read log from">&2
 	echo "A list of services in that module available:"
 	echo "$allServices"
 fi
-## remove the '<modulename>'' prefix from the console input '<servicename>' if the user has entered it. The prefix will be automatically added later
-serviceprefix="${modulename}-"
-servicename=${servicename/$serviceprefix/""}
+
 
 # ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
 #                                                     ............
@@ -44,7 +60,10 @@ fi
 arguments="${args[@]}"
 
 # determining full qualified container name
-containername="${projectname}_${modulename}-${servicename}-${city,,}"
+containername="${projectname}_${modulename}-${servicename}"
+if [ -n "$city" ]; then
+	containername+="-${city,,}"
+fi
 namesOfAllContainers=`sudo docker container ls --all --format "{{.Names}}"`
 containername=`echo "$namesOfAllContainers" | grep $containername`
 
