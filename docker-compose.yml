@@ -16,7 +16,7 @@ services:
       - ./data/letsencrypt/config:/etc/letsencrypt
       #- ./data/certbot/www:/var/www/certbot
       - ./data/nginx/www:/var/www/:ro
-    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    command: "nginx -g \"daemon off;\"'"
     restart: unless-stopped
 
 networks:
