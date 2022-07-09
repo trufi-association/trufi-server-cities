@@ -9,3 +9,7 @@ This command accepts a list of modules to add like `./add_module "Bolivia-Cochab
 - Example (using `workon` script): `add otp`
 
 `add_module` will execute `./server <name of city> up <module name>` in order to start the added module. You don't have to do that in a separate step. But you will need to inform `nginx` about this. We do so by executing `./server reload nginx` which causes nginx to reload its configuration without restarting.
+
+## Extending this script
+
+Read [Extending Trufi Multi-Instance Server - Extending 'add_module' script](../extend.md#extending_add_module_remove_module_script.md).
