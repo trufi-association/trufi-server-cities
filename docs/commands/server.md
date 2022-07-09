@@ -92,28 +92,4 @@ This is necessary after a call to `add_module` or `remove_module`.
 
 ## Extending this script
 
-`server` is highly extensible. Developers can build their own actions for `server`. An action can run in *city scope*, *global scope* or *module scope* without having the developer to code support for all these scopes explicitly (mostly this will be the case). The code of each action lies in `./plugins/server` where each script file contains one action e.g. the action `up` has the file `./plugins/server/up`. If `server` cannot find the action specified by the user it passes the specified action to docker-compose.
-
-Scripts without any file extension like `up` ( `./plugins/server/up` )  will be considered shell files and such will be sourced. All internal variables and functions in `server` are accessible from the code in the action script file too. They share the same code space.
-
-### Variables
-
-The following variables are useful for you
-
-| Variable name  | Description                                                  |
-| -------------- | ------------------------------------------------------------ |
-| modulesPerCity | Only populated after a call to function `performIteration` an associative array with `module name` as keys and the cities as their values. Contains only added modules in added cities. Example:<br />tileserver -> Germany-Hamburg Ghana-Accra<br />otp -> Germany-Hamburg Ghana-Accra |
-| projectname    | contains the project name used to tie all docker containers of this backend together. Used with the `-p` switch of `docker-compose` |
-| curModule      | Only populated when in module scope. Contains the name of the module e.g. `tileserver`  and **not** `./modules/tileserver` |
-| curCity        | Same as city                                                 |
-| city           | Only populated when in city or module scope. Contains the name of the city e.g. `Germany-Hamburg` and **not** `./config/Germany-Hamburg.conf` |
-| curAction      | contains the name of the action the user specified on the command line. Will be the same as the name of your action script e.g. `run` and **not** `./plugins/server/up` |
-
-### Functions
-
-| Function name    | Description                                                  |
-| ---------------- | ------------------------------------------------------------ |
-| performIteration | Iterate through modules applying to the current scope, add them to the associative array `modulesPerCity` and call the corresponding docker-compose with `$curAction` . If calling this function with the argument `noexecute` it will just add each. |
-| attentionPrompt  | Displays a prompt to the user urging them to accept the execution of the action. It is used when the user tries to execute something dangerous like the action `down` in any mode. Pass a reason as the argument to the function call. The reason is a string and will be displayed to the user. Write as a reason the *reason* why your code wants the user to pay more attention than usual. |
-
-If your action does not change the amount of running docker containers for this project then consider putting a `exit 0` at the end so `server` does not run a costly operation to determine the difference. As your action does not touch the amount the difference will never arise so we can safely skip this step thus providing a faster user experience.
+Read [Extending Trufi Multi-Instance Server - Extending 'server' script](../extend.md) for how to write your own actions.
