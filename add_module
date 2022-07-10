@@ -154,7 +154,7 @@ print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://${modulename}-\\\\\\1-${city,,}
 	fi
 
 	source "lib/plugin"
-	invokePlugins "add_module"
+	invokeAllPluginsOf "add_module"
 
 	blueecho "5. Wiring up module '$modulename' for city '$city'"
 	./server "${city}" up "$modulename"

@@ -1,8 +1,9 @@
 #!/bin/bash
-# server [city] action [module] [actionargs]
 source ./lib/colorful
 source ./lib/env
 source ./lib/utils
+source "lib/plugin"
+# server [city] action [module] [actionargs]
 
 # Run added modules (this will be automatically normalized to 'up --detach' before passing to docker-compose)
 # ---------------------
@@ -210,13 +211,15 @@ attentionPrompt() {
 }
 
 # Call actions (made by plugins)
-if [ -f "./plugins/server/$curAction" ]; then
-	source ./plugins/server/$curAction
-elif [ "$curAction" = "down" ] || [ "$curAction" = "stop" ]; then
-	attentionPrompt "Are you sure that nothing depends on the modules you want to perform action '$curAction' on?"
-	performIteration
-else # no additional behaviour defined so pass to docker-compose directly
-	performIteration
+pluginargs=( ${moreargs[@]} )
+invokeSinglePlugin "server" "$curAction"
+if [ $pluginsInvoked -eq 1 ]; then # a plugin hasn't been invoked
+	if [ "$curAction" = "down" ] || [ "$curAction" = "stop" ]; then
+		attentionPrompt "Are you sure that nothing depends on the modules you want to perform action '$curAction' on?"
+		performIteration
+	else # no additional behaviour defined so pass to docker-compose directly
+		performIteration
+	fi
 fi
 
 # Determine if there are still running services after certain action has been performed

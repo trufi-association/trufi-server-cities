@@ -61,7 +61,7 @@ removeModule() {
 	fi
 	
 	source "lib/plugin"
-	invokePlugins "remove_module"
+	invokeAllPluginsOf "remove_module"
 
 	greenecho "removed trufi module '$modulename' from city '$city'"
 }
