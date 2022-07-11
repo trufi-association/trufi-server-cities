@@ -98,7 +98,7 @@ elif [ $decision = "dev" ]; then
 	ssl="no"
 	nginxconf="./nginx/app.nossl.conf"
 else
-	redecho "Error: invalid input"
+	echo "Error: invalid input"
 	exit 1
 fi
 
@@ -107,12 +107,12 @@ echo "This intraweb is only accessible through SSH (thanks to SSH port forwardin
 echo -ne "[y|n]:\033[0;34m "
 read decision
 echo -ne "\033[0;m"
-if [ $decision = "y" ]; then
+if [ "$decision" = "y" ]; then
 	intraweb="yes"
-elif [ $decision = "n" ]; then
+elif [ "$decision" = "n" ]; then
 	intraweb="no"
 else
-	redecho "Error: invalid input"
+	echo "Error: invalid input"
 	exit 1
 fi
 
@@ -162,7 +162,7 @@ if [ "$decision" = "$MODE_REALDOMAINS" ]; then
 elif [ "$decision" = "$MODE_VIRTUALDOMAINS" ]; then
 	CURMODE=$MODE_VIRTUALDOMAINS
 else
-	redecho "Error: invalid input"
+	echo "Error: invalid input"
 	exit 1
 fi
 
