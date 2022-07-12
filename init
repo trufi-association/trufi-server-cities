@@ -94,7 +94,7 @@ echo -ne "\033[0;m"
 if [ $decision = "y" ]; then
 	ssl="yes"
 	nginxconf="./nginx/app.ssl.conf"
-elif [ $decision = "dev" ]; then
+elif [ $decision = "n" ]; then
 	ssl="no"
 	nginxconf="./nginx/app.nossl.conf"
 else

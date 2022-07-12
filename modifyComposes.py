@@ -60,6 +60,8 @@ for module in os.listdir(modulesPath):
 			print("      renaming to '{}' ...".format(newName))
 			dockercompose["services"][newName] = dockercompose["services"][service]
 			del dockercompose["services"][service]
+			
+		dockercompose["networks"]["default"]["name"] = "$projectname"
 				
 		sfile = open(os.path.join(moduleDir, "docker-compose.yml"), "w")
 		sfile.write(yaml.dump(dockercompose, sort_keys=False, default_flow_style=False))

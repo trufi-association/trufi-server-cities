@@ -32,8 +32,25 @@ removeModule() {
 
 	blueecho "1. Turning down module '$modulename' of city '$city'"
 	./server "$city" down "$modulename"
+	
+	blueecho "2. remove interweb nginx configuration"
+	removeNGINXconf "interweb" "$modulename"
+	if [ "$intraweb" = "yes" ]; then
+		blueecho "3. remove intraweb nginx configuration"
+		cd modules/$modulename
+		allServices=`sudo docker-compose -p "$projectname" -f "${city}.yml" ps --services`
+		allServices=( $allServices )
+		cd ../../
+		# iterate through names of all services of that city in the module
+		for servicename in "${allServices[@]}"; do
+			removeNGINXconf "intraweb" "$servicename"
+		done
+	fi
+	
+	source "lib/plugin"
+	invokeAllPluginsOf "remove_module"
 
-	blueecho "2. deactivate module '$modulename' in city '$city'"
+	blueecho "4. deactivate module '$modulename' in city '$city'"
 	
 	ymlFile="$moduleDir/$city.yml"
 	ymlFileInactive="$ymlFile.inactive"
@@ -52,16 +69,6 @@ removeModule() {
 	else
 		greenecho "   already set to inactive. No need to do it again :)"
 	fi
-	
-	blueecho "3. remove interweb nginx configuration"
-	removeNGINXconf "interweb" "$modulename"
-	if [ "$intraweb" = "yes" ]; then
-		blueecho "4. remove intraweb nginx configuration"
-		removeNGINXconf "intraweb" "$modulename"
-	fi
-	
-	source "lib/plugin"
-	invokeAllPluginsOf "remove_module"
 
 	greenecho "removed trufi module '$modulename' from city '$city'"
 }
