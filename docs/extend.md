@@ -61,12 +61,13 @@ The following variables are useful for you
 
 ### Functions
 
-| Function name    | Description                                                  |
-| ---------------- | ------------------------------------------------------------ |
-| performIteration | Iterate through modules applying to the current scope, add them to the associative array `citiesPerModule` and call the corresponding docker-compose with `$curAction` . If calling this function with the argument `noexecute` it will just add each. |
-| attentionPrompt  | Displays a prompt to the user urging them to accept the execution of the action. It is used when the user tries to execute something dangerous like the action `down` in any mode. Pass a reason as the argument to the function call. The reason is a string and will be displayed to the user. Write as a reason the *reason* why your code wants the user to pay more attention than usual. |
+| Function name                                                | Description                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| performIteration "execute"\|"noexecute" [<arguments for function 'performExecution'>] | Iterate through modules applying to the current scope, add them to the associative array `citiesPerModule` .<br />If argument "execute" has been specified then it will call function `performExecution` with the argument `<arguments for function 'performExecution'>`afterwards.<br />In case you specified `<arguments for function 'performExecution'>` this function will execute `performExecution <arguments for function 'performExecution'>` at the end. |
+| performExecution                                             | Execute `$curAction` on cities in modules found in `citiesPerModule` if no argument has been provided (default behaviour).<br />If an argument has been provided then it will be considered to be a function or command and will be called as such instead of the default behaviour. That passed function will be called with the following arguments:<br />`"$@" "$module" "$city"` e.g. `"plesantUp" "tileserver" "Germany-Hamburg"` or with additional arguments `"logs" "search:trufi" "tileserver" Germany-Hamburg"` |
+| attentionPrompt                                              | Displays a prompt to the user urging them to accept the execution of the action. It is used when the user tries to execute something dangerous like the action `down` in any mode. Pass a reason as the argument to the function call. The reason is a string and will be displayed to the user. Write as a reason the *reason* why your code wants the user to pay more attention than usual. |
 
-If your action does not change the amount of running docker containers for this project then consider putting a `exit 0` at the end so `server` does not run a costly operation to determine the difference. As your action does not touch the amount the difference will never arise so we can safely skip this step thus providing a faster user experience.
+If your action does not change the amount of running docker containers for this project then consider putting a `exit 0` at the end so `server` does not run a costly operation to determine the difference. As your action does not touch the amount the difference will never arise so we can safely skip this step thus providing a faster user experience. See end of code of plugin `ls` .
 
 ## Extending `add_module`/`remove_module` script.
 

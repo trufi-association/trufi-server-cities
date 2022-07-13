@@ -81,46 +81,61 @@ removeFirstElemInArgs
 curActionArgs="${args[@]}"
 
 # Define the core
-## iterators
+
+## batch execution (based on what an iterator has found previously)
+performExecution() {
+	if [ -z "${!citiesPerModule[@]}" ]; then # a message for developers
+		redecho "Trying to call 'performExecution' without running 'performExecution \"noexecute\"' before leads to this error message!"
+		echo "crying ..."
+		return
+	
+	fi
+	for module in "${!citiesPerModule[@]}"; do
+		orangeecho "performing desired action '$curAction' on module '$module' ..."
+		if [ -d "$module" ]; then
+			local oldpwd="$PWD"
+			cd "$module"
+
+			local cities=( ${citiesPerModule[$module]} )
+			for city in "${cities[@]}"; do
+				orangeecho "  - in city $city ..."
+				if [ -n "$1" ]; then # assume a function when given
+					"$@" "$module" "$city";
+				else
+					sudo docker-compose -p "${projectname}" -f "$city.yml" $curAction $curActionArgs
+				fi
+			done
+
+			cd "$oldpwd"
+		fi
+	done
+}
+
+## iterators for modules
 ### perform on all cities of a module
 iterateThroughAllCitiesOfModule() {
 	cd "modules/$1"
 	addedCities=""
-	if ! [ "$2" = "noexecute" ]; then
-		orangeecho "performing desired action '$curAction' of module '$1' in city ..."
-	fi
 	for composeFile in `ls | grep .yml`; do
 		if ! [ "$composeFile" = "docker-compose.yml" ] && [[ "$composeFile" == *.yml ]] && [ -f "$composeFile" ]; then
 			addedCities+="${composeFile/'.yml'/''} "
-			if ! [ "$2" = "noexecute" ]; then
-				orangeecho "  - ${composeFile/'.yml'/''} ..."
-				sudo docker-compose -p "${projectname}" -f "${composeFile}" $curAction $curActionArgs
-			fi
 		fi
 	done
-	citiesPerModule[$1]=$addedCities
+	citiesPerModule["modules/$1"]=$addedCities
 	cd "../../"
 }
 
 ### perform on all modules in a city
 iterateThroughAllModulesInCity() {
 	cd modules
-	if ! [ "$2" = "noexecute" ]; then
-		orangeecho "performing desired action '$curAction' in city '$1' on module"
-	fi
 	for module in `ls -p ./ | grep /`; do
 		module=${module/\//""}
 		cd "$module"
+		
 		if [ -f "$1.yml" ]; then
-			citiesPerModule[$module]="$1"
-			if ! [ "$2" = "noexecute" ]; then
-				orangeecho "  - $module ..."
-				#                        <projectname>_<modulename>
-				# e.g.                   city-services_tileserver
-				sudo docker-compose -p "${projectname}" -f "$1.yml" $curAction $curActionArgs
-			fi
+			citiesPerModule["modules/$module"]="$1"
 		fi
-
+		
 		cd ../
 	done
 	cd ../
@@ -136,6 +151,7 @@ iterateThroughEverything() {
 
 ### determine iteration strategy to use and call it
 performIteration() {
+	local error=""
 	if [ "$cityScope" = "all" ] && [ -z "$curModule" ]; then # no city and no module have been specified (perform on all modules in all cities)
 		# server action
 		iterateThroughEverything $1 # perform on all modules in all cities
@@ -147,20 +163,16 @@ performIteration() {
 		iterateThroughAllModulesInCity $city $1 # perform on all modules in current city
 	elif [ "$cityScope" = "city" ] && [ -n "$curModule" ]; then # a city and a module have been specified
 		# server city action module [actionargs]
-		if [ "$1" = "noexecute" ]; then
-			citiesPerModule[$curModule]="$city"
-		else
-			cd "modules/$curModule"
-
-			orangeecho "performing desired action '$curAction' on module '$curModule' in city '$city' ..."
-			#                        <projectname>_<modulename>
-			# e.g.                   city-services_tileserver
-			sudo docker-compose -p "${projectname}" -f "$city.yml" $curAction $curActionArgs
-
-			cd "../../"
-		fi
+		citiesPerModule["modules/$curModule"]="$city"
 	else # if this else gets called then it means something is wrong with the code
-		redecho "Error: Action '$action' couldn't be run as an iteration strategy to perform couldn't be found!"
+		redecho "Error: Action '$curAction' couldn't be run as an iteration strategy to perform couldn't be found!"
+		local error="ITERATIONSTRATEGYNOTFOUND"
+	fi
+	if [ "$1" = "execute" ] && [ -z "$error" ]; then
+		local locargs=( $@ )
+		unset locargs[0]
+		locargs=( `echo "${locargs[@]}"` )
+		performExecution ${locargs[@]}
 	fi
 }
 
@@ -216,9 +228,9 @@ invokeSinglePlugin "server" "$curAction"
 if [ $pluginsInvoked -eq 1 ]; then # a plugin hasn't been invoked
 	if [ "$curAction" = "down" ] || [ "$curAction" = "stop" ]; then
 		attentionPrompt "Are you sure that nothing depends on the modules you want to perform action '$curAction' on?"
-		performIteration
+		performIteration "execute"
 	else # no additional behaviour defined so pass to docker-compose directly
-		performIteration
+		performIteration "execute"
 	fi
 fi
 
