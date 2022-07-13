@@ -52,7 +52,7 @@ The following variables are useful for you
 
 | Variable name  | Description                                                  |
 | -------------- | ------------------------------------------------------------ |
-| modulesPerCity | Only populated after a call to function `performIteration` an associative array with `module name` as keys and the cities as their values. Contains only added modules in added cities. Example:<br />tileserver -> Germany-Hamburg Ghana-Accra<br />otp -> Germany-Hamburg Ghana-Accra |
+| citiesPerModule | Only populated after a call to function `performIteration` an associative array with `module name` as keys and the cities as their values. Contains only added modules in added cities. Example:<br />tileserver -> Germany-Hamburg Ghana-Accra<br />otp -> Germany-Hamburg Ghana-Accra |
 | projectname    | contains the project name used to tie all docker containers of this backend together. Used with the `-p` switch of `docker-compose` |
 | curModule      | Only populated when in module scope. Contains the name of the module e.g. `tileserver`  and **not** `./modules/tileserver` |
 | curCity        | Same as city                                                 |
@@ -63,7 +63,7 @@ The following variables are useful for you
 
 | Function name    | Description                                                  |
 | ---------------- | ------------------------------------------------------------ |
-| performIteration | Iterate through modules applying to the current scope, add them to the associative array `modulesPerCity` and call the corresponding docker-compose with `$curAction` . If calling this function with the argument `noexecute` it will just add each. |
+| performIteration | Iterate through modules applying to the current scope, add them to the associative array `citiesPerModule` and call the corresponding docker-compose with `$curAction` . If calling this function with the argument `noexecute` it will just add each. |
 | attentionPrompt  | Displays a prompt to the user urging them to accept the execution of the action. It is used when the user tries to execute something dangerous like the action `down` in any mode. Pass a reason as the argument to the function call. The reason is a string and will be displayed to the user. Write as a reason the *reason* why your code wants the user to pay more attention than usual. |
 
 If your action does not change the amount of running docker containers for this project then consider putting a `exit 0` at the end so `server` does not run a costly operation to determine the difference. As your action does not touch the amount the difference will never arise so we can safely skip this step thus providing a faster user experience.

@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# perform iteration over all affected docker-compose files to only to populate variable 'modulesPerCity' without performing actions
+# perform iteration over all affected docker-compose files to only to populate variable 'citiesPerModule' without performing actions
 performIteration "noexecute"
 
-# iterate through associative array 'modulesPerCity'
+# iterate through associative array 'citiesPerModule'
 cd modules
-for module in "${!modulesPerCity[@]}"; do # e.g. tileserver, otp, photon
+for module in "${!citiesPerModule[@]}"; do # e.g. tileserver, otp, photon
 	orangeecho "in module '$module'"
 	cd "$module"
-	cities=( ${modulesPerCity[$module]} )
+	cities=( ${citiesPerModule[$module]} )
 	for nameOfCity in "${cities[@]}"; do # e.g. tileserver: Ghana-Accra, Germany-Hamburg
 		orangeecho "  of city '$nameOfCity'"
 		# get names of all services of that city in the module

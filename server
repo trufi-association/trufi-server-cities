@@ -39,7 +39,7 @@ source "lib/plugin"
 projectname=`basename "$PWD"`
 args=( $@ )
 
-declare -A modulesPerCity
+declare -A citiesPerModule
 
 ## if the first argument is a valid city configuration file and provided in the form 'Country-City' or 'Country-City.env'
 ## e.g.: server [city] action [module] [actionargs]
@@ -98,7 +98,7 @@ iterateThroughAllCitiesOfModule() {
 			fi
 		fi
 	done
-	modulesPerCity[$1]=$addedCities
+	citiesPerModule[$1]=$addedCities
 	cd "../../"
 }
 
@@ -112,7 +112,7 @@ iterateThroughAllModulesInCity() {
 		module=${module/\//""}
 		cd "$module"
 		if [ -f "$1.yml" ]; then
-			modulesPerCity[$module]="$1"
+			citiesPerModule[$module]="$1"
 			if ! [ "$2" = "noexecute" ]; then
 				orangeecho "  - $module ..."
 				#                        <projectname>_<modulename>
@@ -148,7 +148,7 @@ performIteration() {
 	elif [ "$cityScope" = "city" ] && [ -n "$curModule" ]; then # a city and a module have been specified
 		# server city action module [actionargs]
 		if [ "$1" = "noexecute" ]; then
-			modulesPerCity[$curModule]="$city"
+			citiesPerModule[$curModule]="$city"
 		else
 			cd "modules/$curModule"
 
