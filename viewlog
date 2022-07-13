@@ -1,39 +1,72 @@
 #!/bin/bash
 # makes sense for production only
+# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
+
+args=( $@ )
 
 source ./lib/colorful
-
-blueecho "performing some checks & normalizations ..."
-source ./lib/validation
-
-modulename="${args[0]}"
-# remove elem on first index
-unset args[0]
-args=( `echo "${args[@]}"` )
-
-containername="$modulename-$city"
-moreargs="false"
+source ./lib/utils
 projectname=`basename "$PWD"`
 
-if [ -z "$modulename" ]; then
-    echo 'Error: extension name as param is needed (e.g. "tileserver")' >&2
-    exit 1
+# ./viewlog [<Country-City>] [<modulename>] <servicename> [<moreargs>]
+#           ..............
+envfile="${args[0]/'.env'/''}.env"
+if [ -f "./config/$envfile" ]; then # export the variables in the city configuration file
+	blueecho "performing some checks & normalizations ..."
+	source ./lib/validation
+fi
+# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
+#                          ............
+modulename="${args[0]}"
+removeFirstElemInArgs
+if [ -n "$city" ]; then
+	if ! [ -d "modules/$modulename" ]; then
+		redecho "Error: You specified an invalid name of a module to read log from">&2
+		echo "A list of modules available:"
+		ls -p ./modules | grep -v /
+	fi
 fi
 
-if [ ${#args[@]} -gt 0 ]; then
-	moreargs="true"
+# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
+#                                       .............
+servicename="${args[0]}"
+removeFirstElemInArgs
+	
+## remove the '<modulename>'' prefix from the console input '<servicename>' if the user has entered it. The prefix will be automatically added later
+serviceprefix="${modulename}-"
+servicename=${servicename/$serviceprefix/""}
+
+if [ -n "$city" ]; then
+	cd "modules/$modulename"
+	allServices=`sudo docker-compose -p "$projectname" -f "${city}.yml" ps --services`
+	cd "../../"
+else
+	serviceame="${args[0]}"
+	removeFirstElemInArgs
+	allServices=`sudo docker-compose -p "$projectname" -f "docker-compose.yml" ps --services`
+fi
+if [ -z `echo $allServices | grep $servicename` ]; then
+	redecho "Error: You specified an invalid name of a service in module '$modulename' to read log from">&2
+	echo "A list of services in that module available:"
+	echo "$allServices"
 fi
 
-if [ "$moreargs" = "false" ]; then
-	args+=( --since today --follow )
-fi
 
+# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
+#                                                     ............
+if [ ${#args[@]} -eq 0 ]; then
+	args+=( "--since today --follow" )
+fi
 arguments="${args[@]}"
 
-# determining right container name
-containername="${projectname}_${containername}"
-containername=`sudo docker container ls --format "{{.Names}}"`
-containername=`echo $containername | grep $containername`
+# determining full qualified container name
+containername="${projectname}_${modulename}-${servicename}"
+if [ -n "$city" ]; then
+	containername+="-${city,,}"
+fi
+namesOfAllContainers=`sudo docker container ls --all --format "{{.Names}}"`
+containername=`echo "$namesOfAllContainers" | grep $containername`
 
+# Executing journalctl command to get the logs
 orangeecho "Executing 'sudo journalctl CONTAINER_NAME=\"${containername}\" $arguments'"
 sudo journalctl CONTAINER_NAME="${containername}" $arguments

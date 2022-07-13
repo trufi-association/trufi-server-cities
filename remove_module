@@ -1,7 +1,12 @@
 #!/bin/bash
 
+projectname=`basename "$PWD"`
+
 source ./lib/colorful
 
+# Removes all occurrence of a configuration e.g. to make intraweb work
+# removeNGINXconf <folder in 'data/nginx' to operate on> <modulename>
+# e.g. removeNGINXconf intraweb tileserver
 removeNGINXconf() {
 	local modulename="$2"
 	if [ -f "./data/nginx/${1}/${city}/${modulename}.conf" ]; then
@@ -9,7 +14,7 @@ removeNGINXconf() {
 		rm "./data/nginx/${1}/${city}/${modulename}.conf" --verbose
 	fi
 
-	if [ -d "./data/nginx/${1}/${city}" ] && [ -z `dir "./data/nginx/${1}/${city}"` ]; then
+	if [ -d "./data/nginx/${1}/${city}" ] && [ -z `ls "./data/nginx/${1}/${city}"` ]; then
 		orangeecho "   removing nginx configuration of city '$city' because it's empty now ..."
 		rm -R "./data/nginx/${1}/${city}" --verbose
 		if [ -f "./data/nginx/${1}/${city}.conf" ]; then
@@ -24,17 +29,34 @@ source ./lib/validation
 
 removeModule() {
 	local modulename="$1"
-	blueecho "2. deactivate module '$modulename' in city '$city'"
+
+	blueecho "1. Turning down module '$modulename' of city '$city'"
+	./server "$city" down "$modulename"
+	
+	blueecho "2. remove interweb nginx configuration"
+	removeNGINXconf "interweb" "$modulename"
+	if [ "$intraweb" = "yes" ]; then
+		blueecho "3. remove intraweb nginx configuration"
+		cd modules/$modulename
+		allServices=`sudo docker-compose -p "$projectname" -f "${city}.yml" ps --services`
+		allServices=( $allServices )
+		cd ../../
+		# iterate through names of all services of that city in the module
+		for servicename in "${allServices[@]}"; do
+			removeNGINXconf "intraweb" "$servicename"
+		done
+	fi
+	
+	source "lib/plugin"
+	invokeAllPluginsOf "remove_module"
+
+	blueecho "4. deactivate module '$modulename' in city '$city'"
 	
 	ymlFile="$moduleDir/$city.yml"
 	ymlFileInactive="$ymlFile.inactive"
 	
 	if [ -f "$ymlFile" ]; then
 		orangeecho "   setting module in directory '$moduleDir' to inactive ..."
-		
-		cd $moduleDir
-		sudo docker-compose -f "$city.yml" down
-		cd ../../
 	
 		mv "$ymlFile" "$ymlFileInactive" --verbose
 		if ! [ -f "$ymlFileInactive" ]; then
@@ -47,25 +69,13 @@ removeModule() {
 	else
 		greenecho "   already set to inactive. No need to do it again :)"
 	fi
-	
-	blueecho "3. remove interweb nginx configuration"
-	removeNGINXconf "interweb" "$modulename"
-	if [ "$intraweb" = "yes" ]; then
-		blueecho "4. remove intraweb nginx configuration"
-		removeNGINXconf "intraweb" "$modulename"
-	fi
-	
+
 	greenecho "removed trufi module '$modulename' from city '$city'"
 }
 
 for module in "${args[@]}"; do
 	moduleDir="./modules/$module"
 	if [ -z "$module" ]; then
-		continue
-	fi
-	#if $modulename is empty or $moduleDir does not exist
-	if ! [ -d "$moduleDir" ]; then
-		orangeecho "WARNING: Module '$module' does not exist, ignoring ..."
 		continue
 	fi
 	echo

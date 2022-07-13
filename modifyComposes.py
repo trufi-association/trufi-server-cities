@@ -14,15 +14,19 @@ if not os.path.exists(modulesPath):
 	sys.exit(1)
 
 orangeprint("patching modules ...")
-for ext in os.listdir(modulesPath):
-	extDir = os.path.join(modulesPath, ext)
-	if os.path.exists(os.path.join(extDir, "data")):
+for module in os.listdir(modulesPath):
+	if module.find("_") > -1:
+		os.rename(os.path.join(modulesPath, module), os.path.join(modulesPath, module.replace("_", "-")))
+		module = module.replace("_", "-")
+	moduleDir = os.path.join(modulesPath, module)
+	if os.path.exists(os.path.join(moduleDir, "data")):
 		print("    renaming directory 'data' to 'data_template' ...")
-		os.rename(os.path.join(extDir, "data"), os.path.join(extDir, "data_template"))
+		os.rename(os.path.join(moduleDir, "data"), os.path.join(moduleDir, "data_template"))
 		
-	composefile = os.path.join(extDir, "docker-compose.yml")
+	composefile = os.path.join(moduleDir, "docker-compose.yml")
+
 	if os.path.exists(composefile):
-		orangeprint("  modifying module '{}' ('{}') ...".format(ext, extDir))
+		orangeprint("  modifying module '{}' ('{}') ...".format(module, moduleDir))
 		sfile = open(composefile, "r")
 		dockercompose = yaml.safe_load(sfile.read())
 		sfile.close()
@@ -30,7 +34,12 @@ for ext in os.listdir(modulesPath):
 		
 		servicesToRename = []
 		for service in dockercompose["services"]:
+			addToRenameList = False
 			if not service.endswith("-$city_normalize"):
+				addToRenameList = True
+			if 2 > service.count(module):
+				addToRenameList = True
+			if addToRenameList:
 				servicesToRename.append(service)
 			print("    service '{}'".format(service))
 			if "volumes" in dockercompose["services"][service]:
@@ -47,10 +56,13 @@ for ext in os.listdir(modulesPath):
 				del dockercompose["services"][service]["ports"]
 			
 		for service in servicesToRename:
-			print("      renaming to '{}' ...".format(service + "-$city_normalize"))
-			dockercompose["services"][service + "-$city_normalize"] = dockercompose["services"][service]
+			newName = module + "-" + service.replace("-$city_normalize", "") + "-$city_normalize"
+			print("      renaming to '{}' ...".format(newName))
+			dockercompose["services"][newName] = dockercompose["services"][service]
 			del dockercompose["services"][service]
+			
+		dockercompose["networks"]["default"]["name"] = "$projectname"
 				
-		sfile = open(os.path.join(extDir, "docker-compose.yml"), "w")
+		sfile = open(os.path.join(moduleDir, "docker-compose.yml"), "w")
 		sfile.write(yaml.dump(dockercompose, sort_keys=False, default_flow_style=False))
 		sfile.close()

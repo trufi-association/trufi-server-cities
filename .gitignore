@@ -8,3 +8,5 @@ data/logs
 data/letsencrypt
 data/maps
 data/certbot
+.vscode
+test

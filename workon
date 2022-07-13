@@ -16,7 +16,7 @@ workon_optionalvariables=( "email" )
 if [ -z "$enfile" ] && [ -z "$1" ]; then
 	redecho "No city file to load found. \033[0;mExecute '\033[0;34m. ./workon <name of env file>\033[0;m'"
 	echo "List of available city files:"
-	dir config
+	ls config
 	return
 fi
 
@@ -58,7 +58,7 @@ if ! [ -z "$cityfile" ]; then
 fi
 
 orangeecho "modifying prompt ..."
-export PS1="\033[0;32m$city@$env\033[0;34m (MODE '$curmode')\033[0;m $ "
+export PS1="\033[0;32m$city@ssl='$ssl'\033[0;34m (MODE '$curmode')\033[0;m $ "
 orangeecho "adding command aliases ..."
 alias add="./add_module"
 alias remove="./remove_module"
@@ -85,12 +85,12 @@ echo '--------------------------------------------------------------------------
 echo 
 echo -e "\033[1;34mCommand list:\033[0;m"
 echo -e "\033[0;34mclose\033[0;m        get the prompt and the environment reverted back."
-echo -e "\033[0;34madd\033[0;m          alias to \033[0;36m./add_module\033[0;m"
-echo -e "\033[0;34mremove\033[0;m       alias to \033[0;36m./remove_module\033[0;m"
-echo -e "\033[0;34mserver\033[0;m       alias to \033[0;36m./server\033[0;m"
-echo -e "\033[0;34mviewlog\033[0;m      alias to \033[0;36m./viewlog\033[0;m"
-echo -e "\033[0;34mrestart\033[0;m      alias to \033[0;36m./restart_module\033[0;m"
-echo -e "\033[0;34mworkon\033[0;m       alias to \033[0;36m. ./workon\033[0;m (this script)"
+echo -e "\033[0;34madd\033[0;m          alias to \033[0;36m./add_module \"$city\"\033[0;m"
+echo -e "\033[0;34mremove\033[0;m       alias to \033[0;36m./remove_module \"$city\"\033[0;m"
+echo -e "\033[0;34mserver\033[0;m       alias to \033[0;36m./server \"$city\"\033[0;m"
+echo -e "\033[0;34mviewlog\033[0;m      alias to \033[0;36m./viewlog \"$city\"\033[0;m"
+echo -e "\033[0;34mrestart\033[0;m      alias to \033[0;36m./restart_module \"$city\"\033[0;m (deprecated)"
+echo -e "\033[0;34mworkon\033[0;m       alias to \033[0;36m. ./workon \"$city\"\033[0;m (this script)"
 echo "other commands work as expected"
 echo
 if [ -n "$errors" ]; then

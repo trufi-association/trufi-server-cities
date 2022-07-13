@@ -1,0 +1,6 @@
+#!/bin/bash 
+removeFirstElemInArgs() {
+	# remove elem on first index
+	unset args[0]
+	args=( `echo "${args[@]}"` )
+}

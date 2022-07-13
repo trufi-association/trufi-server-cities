@@ -1,0 +1,25 @@
+#!/bin/bash
+invokeSinglePlugin() {
+	# 0 true
+	# 1 false
+	pluginsInvoked=1
+	local res=`ls "plugins/$1" | grep "$2.sh"`
+	if [ -n "$res" ]; then
+		pluginsInvoked=0 # means true
+		source "plugins/$1/$2.sh"
+	else
+		local res=`ls "plugins/$1" | grep "$2"`
+		if [ -n "$res" ]; then
+			pluginsInvoked=0 # means true
+			./plugins/$1/$2 ${pluginargs[@]}
+		fi
+	fi
+}
+
+invokeAllPluginsOf() {
+	if [ -d "plugins/$1" ]; then
+		for script in `ls "plugins/$1"`; do
+			invokeSinglePlugin "$1" "$script"
+		done
+	fi
+}
