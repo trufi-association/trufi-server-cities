@@ -7,10 +7,6 @@ pleasantUp() {
 	# get names of all services of that city in the module
 	allServices=`sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" ps --services`
 	allServices=( $allServices )
-		
-	# get running services of that city in the module
-	runningServices=`sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" ps`
-	length=${#runningServices[@]}
 	
 	# iterate through names of all services of that city in the module
 	for servicename in "${allServices[@]}"; do # e.g. tileserver-ghana-accra, tileserver-germany-hamburg
@@ -24,7 +20,7 @@ pleasantUp() {
 			curContainerId="${curContainerId[0]}"
 			
 			# create a new container of service 'servicename' (scale up)
-			sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" up --detach --scale ${allServices[$i]}=2 --no-recreate ${allServices[$i]}
+			sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" up --detach --scale $servicename=2 --no-recreate $servicename
 			
 			sleep 5 # TODO: healtheck instead of waiting five seconds in hope this is enough for the startup process
 			
@@ -32,10 +28,10 @@ pleasantUp() {
 			sudo docker rm -f "$curContainerId"
 			
 			# scale back
-			sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" up --detach --scale ${allServices[$i]}=1 --no-recreate ${allServices[$i]}
+			sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" up --detach --scale $servicename=1 --no-recreate $servicename
 		else
 			orangeecho "    - wiring up a docker container for service '$servicename' ..."
-			sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" up --build --detach
+			sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" up --build --detach $servicename
 		fi
 	done
 }
