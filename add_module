@@ -123,7 +123,7 @@ print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://${modulename}-\\\\\\1-${city,,}
 		
 		orangeecho "     completing nginx configuration for city '$city' ..."
 		if ! [ -f "$nginxcityconf" ]; then
-			echo "include /etc/nginx/intraweb/$city/*/*.conf ;" > "$nginxcityconf"
+			echo "include /etc/nginx/intraweb/$city/*.conf ;" > "$nginxcityconf"
 		else
 			greenecho "     not necessary as already completed :)"
 		fi
