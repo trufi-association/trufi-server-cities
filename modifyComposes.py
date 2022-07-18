@@ -48,7 +48,7 @@ for module in os.listdir(modulesPath):
 					hostVolumePart = volumeConf[0]
 					del volumeConf[0]
 					normalize = hostVolumePart.lower().replace("./", "").replace("/", "")
-					if "data" == normalize:
+					if normalize.find("data") > -1:
 						print("      volume configuration ...")
 						dockercompose["services"][service]["volumes"][index] = hostVolumePart.replace("data", "data_$city") + ":" + ":".join(volumeConf)
 			if "ports" in dockercompose["services"][service]:
