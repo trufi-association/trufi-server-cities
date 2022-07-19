@@ -85,7 +85,7 @@ curActionArgs="${args[@]}"
 ## batch execution (based on what an iterator has found previously)
 performExecution() {
 	if [ -z "${!citiesPerModule[@]}" ]; then # a message for developers
-		redecho "Trying to call 'performExecution' without running 'performExecution \"noexecute\"' before leads to this error message!"
+		redecho "Trying to call 'performExecution' without running 'performIteration \"noexecute\"' before leads to this error message!"
 		echo "crying ..."
 		return
 	
@@ -121,7 +121,9 @@ iterateThroughAllCitiesOfModule() {
 			addedCities+="${composeFile/'.yml'/''} "
 		fi
 	done
-	citiesPerModule["modules/$1"]=$addedCities
+	if [ -n "$addedCities" ]; then
+		citiesPerModule["modules/$1"]=$addedCities
+	fi
 	cd "../../"
 }
 
