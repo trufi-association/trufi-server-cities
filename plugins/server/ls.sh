@@ -44,4 +44,6 @@ body=${body//chief-/"\033[0;35mchief\033[0;m-"}
 echo -e "\033[1;37m${heading}\033[0;m"
 echo -e "$body"
 
+# This script does not touch the amount of running modules, their services and also does not touch the amount of chiefes so it is a good practise to exit at this time
+# Otherwise the `server` script performs a costly calculation if something has been started/stopped/upped/downed.
 exit 0

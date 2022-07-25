@@ -19,6 +19,7 @@ invokeSinglePlugin() {
 invokeAllPluginsOf() {
 	if [ -d "plugins/$1" ]; then
 		for script in `ls "plugins/$1"`; do
+			script=${script/".sh"/""}
 			invokeSinglePlugin "$1" "$script"
 		done
 	fi
