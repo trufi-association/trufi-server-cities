@@ -53,7 +53,9 @@ For other but important parameters which apply globally to all cities, we use a 
 
 You can find all in the [modules](./modules) folder. Each module has a README file with more detailed info.
 
-In order to add more modules compatible to [trufi-server-modules](https://github.com/trufi-association/trufi-server-modules) like [tsm-locaco](https://github.com/trufi-association/tsm-locaco) you just have to do a `git clone` inside the `module` folder, to execute `modifyComposes.py` and to work with it as you did with the other modules pre-installed.
+In order to add more modules compatible to [trufi-server-modules](https://github.com/trufi-association/trufi-server-modules) like [tsm-locaco](https://github.com/trufi-association/tsm-locaco) you just have to do a `git clone` inside the `modules` folder, to execute `modifyComposes.py` and to work with it as you did with the other modules pre-installed.
+
+Read more about [including external modules](./docs/extend.md#external_modules)
 
 ## Setup & Maintenance
 
@@ -75,21 +77,25 @@ Then rename all `data` folders inside the modules to `data_Country-City` e.g. `d
 
 We hide all (optional) services behind a nginx proxy which **can** handle the encryption for them. To make encrypted connections to that nginx proxy possible we need to issue a HTTPS certificate. Luckily there is *Let’s Encrypt* issuing them to anyone without the need to pay. This backend relies on the SSL/TLS certificate management infrastructure of the docker host (your linux system). There are multiple ways connecting the dots.
 
-Our docker `cief-nginx` by default listens on the host port `8290` for HTTP and on `8300` for HTTPS requests.
+Our docker `cief-nginx` by default listens on the host port `8290` for HTTP and on `8300` for HTTPS requests. See [changing ports of chief-nginx](./docs/extend.md#changing_ports_of_chief-nginx) if you want to change that.
 
-#### Docker `chief-nginx` has its own HTTPS certificate store and runs on a different port
+#### An HTTP server already exists on your system
 
-This requires the `ssl` variable in `./data/instance.conf` set to `yes` before any execution of `add_module`. If you accidentally run `add_module` before doing that then use `remove_module` to remove the configuration files as `remove_module` is the opposite of `add_module`.
+This requires the `ssl` variable in `./data/instance.conf` set to `yes` before any execution of `add_module`. If you accidentally run `add_module` before doing that then use `remove_module` to remove the nginx configuration files as `remove_module` is the opposite of `add_module`.
 
-The docker container `nginx` in our provided configuration expects to find the necessary files needed to answer https requests in the host path `./data/certbot/conf` which is in its schematics equal to the well known [/etc/letsencrypt](https://eff-certbot.readthedocs.io/en/stable/using.html#where-certs). Of course this behaviour can be changed that the nginx docker container sees `/etc/letsencrypt` of your host directly although not recommended. This just adds one more security risk to manage. If you care about security you just put the files in `./data/certbot/conf`  you need for running this docker infrastructure. To put it in other words: If you have the following domains `example.com` , `example.uk` and `example.org` . The first domain `example.com` is used by your web server running on the host linux system and the others two are used by the `nginx` running in this docker infrastructure then just put the necessary files for HTTPS on `example.org` and `example.com` into  `./data/certbot/conf` . This way you have `/etc/letsencrypt` on your host for the HTTPS server running on your host system. The other one `./data/certbot/conf` for the HTTPS server running for this infrastructure.
+In any case you need to run `openssl dhparam -out ./data/nginx/inc/dhparam.pem 4096` after executing `init` to generate the dhparam file.
 
-In that case you need to run `openssl dhparam -out ./data/nginx/inc/dhparam.pem 4096` after executing `init` to generate the dhparam file.
+The docker container `chief-nginx` in our provided configuration expects to find the necessary files needed to answer https requests in the host path `./data/certbot/conf` which is in its schematics equal to the well known [/etc/letsencrypt](https://eff-certbot.readthedocs.io/en/stable/using.html#where-certs). Of course this behaviour can be changed that the nginx docker container sees `/etc/letsencrypt` of your host directly although not recommended. This just adds one more security risk to manage. If you care about security you just put the files in `./data/certbot/conf`  you need for running this docker infrastructure. To put it in other words: If you have the following domains `example.com` , `example.uk` and `example.org` . The first domain `example.com` is used by your web server listening to port 80 and the others two are used by the `nginx` running in this docker infrastructure then just put the necessary files for HTTPS on `example.uk` and `example.org` into  `./data/certbot/conf` . This way you have `/etc/letsencrypt` on your host for the HTTPS server running on your host system serving ` example.com`. The other one `./data/certbot/conf` for the HTTPS server running for this infrastructure serving `example.uk` and `example.org`.
+
+This is the setup on our own server and we provide a [working example of our nginx configuration for Let's Encrypt stuff](./docs/command/certify.md#example_nginx_configuration) you can use as an inspiration on how to do that thing.
 
 #### Central HTTPS server on your host system
 
 This requires the `ssl` variable in `./data/instance.conf` set to `no` before any execution of `add_module`. If you accidentally run `add_module` before doing that then use `remove_module` to remove the configuration files as `remove_module` is the opposite of `add_module`.
 
 This is useful if you are already providing other services in need of HTTPS to your customers e.g. you are already hosting a website. Now you want to have your server provide different services for different cities. Also this is your only option if your server is behind a firewall just letting port 80 and 443 pass through. Go setup nginx on your host which then does all the HTTPS stuff and takes care to redirect to the appropriate sub webservers based on specified parameters you have defined. This allows you to use this structure without any HTTPS configuration ( `ssl="no"` ) because encryption is handled by your HTTPS server on your host.
+
+See an [example nginx configuration only used for Let's Encrypt](./docs/commands/certify.md#example_nginx_configuration)
 
 #### Get HTTPS certificate (independent from your infrastructure)
 

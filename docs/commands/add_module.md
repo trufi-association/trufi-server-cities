@@ -1,4 +1,4 @@
-# Module management
+# add_module
 
 **It adds a module to the run configuration and starts it automatically**
 

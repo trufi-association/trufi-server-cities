@@ -15,7 +15,7 @@ services:
       - ./data/logs/nginx:/var/log/nginx/
       - ./data/letsencrypt/config:/etc/letsencrypt
       #- ./data/certbot/www:/var/www/certbot
-      - ./data/nginx/www:/var/www/:ro
+      - ./data/nginx/www:/var/www/html:ro
     command: "nginx -g \"daemon off;\""
     restart: unless-stopped
 
