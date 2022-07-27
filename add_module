@@ -56,6 +56,11 @@ interwebConfiguration() {
 	# if a nginx reverse proxy configuration exists for this module
 	if [ -f "$modulenginxconf" ]; then # read it into memory (to be able to alter it later)
 		modulenginxconf_content=`cat "$modulenginxconf"`
+		modulenginxconf_content=`
+export \`cat $cityfile | xargs\`
+export projectname="$projectname"
+export modulename="$modulename"
+echo "$modulenginxconf_content" | envsubst`
 	else
 		# if no module nginx reverse configuration exists then abbort
 		return
