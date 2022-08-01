@@ -11,6 +11,11 @@ source ./lib/validation
 compileCompose() {
 	blueecho "Add module '$modulename' to city '$city'"
 
+	if ! [ -f "$moduleDir/docker-compose.yml" ]; then
+		echo "   doing this makes no sense as the template file '$moduleDir/docker-compose.yml' does not exist!"
+		return
+	fi
+
 	# 1. Generate a docker-compose for the city (if not already existing)
 	ymlFile="$moduleDir/$city.yml"
 	ymlFileInactive="$ymlFile.inactive"
@@ -121,6 +126,12 @@ intrawebConfiguration() {
 	# 6. Intraweb configuration
 	if [ "$intraweb" = "yes" ]; then
 		blueecho "Add intraweb nginx configuration ..."
+		
+		if ! [ -f "$moduleDir/docker-compose.yml" ]; then
+			echo "   doing this makes no sense as the template file '$moduleDir/docker-compose.yml' does not exist!"
+			return
+		fi
+
 		orangeecho "   adding nginx configuration for '$modulename' in city '$city' ..."
 		
 		nginxcityfolder="./data/nginx/intraweb/$city"

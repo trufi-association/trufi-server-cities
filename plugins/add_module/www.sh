@@ -15,9 +15,13 @@ copyWWW() {
 			mkdir -p "$nginxwwwfolder" --verbose
 		fi
 		
-		orangeecho "      copying 'www' ..."
-		cp -R "$modulewwwfolder" "$nginxmodulewwwfolder"
-		
+		if ! [ -d "$nginxmodulewwwfolder" ]; then
+			orangeecho "      copying 'www' ..."
+			cp -R "$modulewwwfolder" "$nginxmodulewwwfolder"
+		else
+			greenecho "      not copying as already existing at target '$nginxmodulewwwfolder'"
+		fi
+
 		orangeecho "      configuring environment of the copied folder ..."
 		local _ls=`ls "$modulewwwfolder"` # for performance reason we cache the result
 		for substcandidate in "${wwwenvfiles[@]}"; do
