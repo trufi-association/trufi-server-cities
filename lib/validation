@@ -8,18 +8,15 @@ source ./lib/utils
 # validations
 
 ## if $cityfile is empty but a valid city configuration name has been provided
-if [ -z "$cityfile" ] && [ -f "./config/${args[0]/".env"/""}.env" ]; then
+if [ -f "./config/${args[0]/".env"/""}.env" ]; then
 	envname=${args[0]//".env"/""}
 	cityfile="./config/$envname.env"
-#	export cityfile="./config/$envname.env"
-	
 	removeFirstElemInArgs
 fi
 
 ## if $cityfile contains something but the $city environment variable hasn't been populated
 if [ -n "$cityfile" ] && [ -z "$city" ]; then
 	orangeecho "  importing city file '$cityfile' ..."
-	#. ./workon
 	source ./$cityfile
 fi
 

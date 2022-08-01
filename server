@@ -1,4 +1,5 @@
 #!/bin/bash
+source ./lib/singlenv
 source ./lib/colorful
 source ./lib/env
 source ./lib/utils

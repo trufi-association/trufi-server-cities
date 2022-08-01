@@ -1,5 +1,6 @@
 #!/bin/bash 
 
+source ./lib/singlenv
 source ./lib/env
 
 redecho() {
@@ -13,7 +14,7 @@ orangeecho() {
 workon_requiredvariables=( "city" "otpversion" "domain" )
 workon_optionalvariables=( "email" )
 
-if [ -z "$enfile" ] && [ -z "$1" ]; then
+if [ -z "$envfile" ] && [ -z "$1" ]; then
 	redecho "No city file to load found. \033[0;mExecute '\033[0;34m. ./workon <name of env file>\033[0;m'"
 	echo "List of available city files:"
 	ls config

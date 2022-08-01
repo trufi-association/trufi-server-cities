@@ -2,6 +2,7 @@
 
 projectname=`basename "$PWD"`
 
+source ./lib/singlenv
 source ./lib/colorful
 
 orangeecho "This script has been deprecated and will be removed in the next major release v3.0.0"

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# return the amount of available configuration files ending with '.env'
+#                 return all content of directory 'config'
+#                            filter by all content having '.env' at the end ($)
+#                                             count the filtered output
+determineAmountOfEnabledCityConfigurationFiles() {
+	local amountOfEnabledCityConfigurationFiles=`ls config | grep "\.env$" | wc -l`
+	if [ $amountOfEnabledCityConfigurationFiles -eq 1 ]; then
+		echo "$(tput blink)$(tput setaf 6)Only one city configuration file exists, turning on 'single environment' mode ...$(tput sgr0)"
+		cityfile="./config/`ls config | grep "\.env$"`"
+	fi
+}
+determineAmountOfEnabledCityConfigurationFiles
