@@ -35,7 +35,7 @@ The config files are located inside `./config` folder, you can create a new one 
 | domain     | cbba.trufi.app     | The domain name of the city. If you use the mode `virtual domains` then be creative as this variable will then not be of use but needs to be available |
 | otpversion | 1.5.0              | Put there `1.5.0` for regions having PTv1 schema in OSM otherwise `2.0.0` |
 
-Create a new one based on the already existing config files to get an idea of their internal structure. Do that for each city you want to host backend services for. *You may want to remove the other configuration city files which are meant to provide examples.*
+Create a new one based on the already existing config files to get an idea of their internal structure. Do that for each city you want to host backend services for. *You may want to remove the other configuration city files which are meant to provide examples.* If there is only one city configuration file ending with `.env` left then you can use the commands without the `<name of city>` argument e.g. `add_module tileserver` or `server up tileserver`. But as soon as there are more than one then you need to specify `<name of city>` of course.
 
 ### Global
 
