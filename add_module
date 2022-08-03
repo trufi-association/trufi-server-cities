@@ -23,8 +23,7 @@ compileCompose() {
 
 	if ! [ -f "$ymlFileInactive" ] && ! [ -f "$ymlFile" ]; then
 		orangeecho "   building & adding in directory '$moduleDir' ) ..."
-		city_normalize="${city,,}"
-		(export `cat ./$cityfile | xargs`; export projectname="$projectname" 
+		(export `cat ./$cityfile | xargs`; export projectname="$projectname" ; export city_normalize="${city,,}"
 		envsubst < $moduleDir/docker-compose.yml > "$ymlFile" )
 		if ! [ -f "$ymlFile" ]; then
 			redecho "     Creating & adding operation failed! Do I have write access to '$moduleDir'?">&2
@@ -93,7 +92,7 @@ echo "$modulenginxconf_content" | envsubst`
 	fi
 
 	# 4. Generating nginx module configuration
-	orangeecho "     copying & altering nginx module configuration for module '$modulename' to nginx server configuration for city '$city' (overwriting if already existing) ..."
+	orangeecho "     copying & altering nginx module configuration for module '$modulename' to nginx server configuration for city '$city' ..."
 	if ! [ -f "$nginxcitymoduleconf" ]; then
 		# search for pattern 'http://otp:' or 'http://otp;' or 'http://otp/'
 		# and replace it with 'http://otp-$city:' or 'http://otp-$city;' or 'http://otp-$city/'
