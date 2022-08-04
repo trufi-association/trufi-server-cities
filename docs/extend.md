@@ -16,15 +16,15 @@ In order to add more modules compatible to [trufi-server-modules](https://github
 
 ## Chiefs
 
-We introduce "chiefs" which are all services specified in the `docker-compose.yml` at project root. They don't share the concept of modules and cities. As they don't share this concept you cannot add/remove them in the classical way with `add_module`/`remove_module`. Instead they will be ruled by `server` which creates/removes/starts/stops them automatically depending on what you do with the modules.
+We introduce "chiefs" which are all services specified in the `docker-compose.yml` at project root **or** in `plugins/chief/*.yml`. They don't share the concept of modules and cities. As they don't share this concept you cannot add/remove them in the classical way with `add_module`/`remove_module`. Instead they will be ruled by `server` which creates/removes/starts/stops them automatically depending on what you do with the modules.
 
 But you can add/remove chiefs as you please. Just edit `docker-compose.yml` accordingly. Command `server` cannot detect modifications automatically so you have to execute
 
 ```bash
-sudo docker-compose -p `basename "$PWD"` -f "docker-compose.yml" up <servicename> --build --detach
+sudo docker-compose -p `basename "$PWD"` -f "plugins/chief/<name of chiefs>.yml" up --build --detach
 ```
 
-e.g. if you changed something on the ports and you want to update the already running `chief-nginx` then execute
+e.g. if you [changed something on the ports](#changing_ports_of_chief-nginx) and you want to update the already running `chief-nginx` then execute
 
 ```bash
 sudo docker-compose -p `basename "$PWD"` -f "docker-compose.yml" up "chief-nginx" --build --detach

@@ -1,15 +1,11 @@
-# trufi-server-cities
+# Trufi Multi-Instance Server
 
-A repository as a recipe to create your own production backend city for multiple Trufi Apps. This only contains the services which actually **consume & serve but <u>do not create</u>**
+This is a structure build to host services following our `modules` convention. It allows of tearing up and down modules and their services easily. The following repositories have been created by us following our convention so these are fully compatible to this structure:
 
-- the search index (consumed by module `photon`)
-- the mbtile (map tiles for your region) (consumed by module `tileserver`)
-- the static png tiles for your region) (consumed by module `static_maps`)
-- the routing graph (consumed by module `otp` - **O**pen**T**rip**P**lanner )
-
-and of course Nginx which combines these modules to make them appear as *one* with *one* HTTPS certificate, web identity and url scheme.
-
-If you actually need to create the stuff e.g. the mbtiles or the graph you better go to [Trufi Server Resources](https://github.com/trufi-association/trufi-server-resources).
+- [Trufi Server Modules](https://github.com/trufi-association/trufi-server-modules)
+  Use this to host services necessary for apps built on our Trufi Core. These modules are used by our famous and very first [Trufi App](https://trufi.app).
+- [Trufi Website Modules](https://github.com/trufi-association/trufi-website-modules)
+  Use this to host services necessary to have a project website to show potential users your app build on our Trufi Core.
 
 **We use docker but not to make this cross-platform. This is intended to be used on Linux. We only use docker to make setups equal, easy for all admins and their systems, for security and troubleshooting concerns.**
 
@@ -27,13 +23,13 @@ At last we introduce "chiefs" which are all services specified in the `docker-co
 
 ### City
 
-The config files are located inside `./config` folder, you can create a new one providing your own variables:
+The city config files are located inside `./config` folder, you can create a new one providing your own variables:
 
-| variable   | example            | description                                                  |
-| ---------- | ------------------ | ------------------------------------------------------------ |
-| city       | Bolivia-Cochabamba | Just `Country-City` name                                     |
-| domain     | cbba.trufi.app     | The domain name of the city. If you use the mode `virtual domains` then be creative as this variable will then not be of use but needs to be available |
-| otpversion | 1.5.0              | Put there `1.5.0` for regions having PTv1 schema in OSM otherwise `2.0.0` |
+| variable                  | example                   | description                                                  |
+| ------------------------- | ------------------------- | ------------------------------------------------------------ |
+| city                      | Bolivia-Cochabamba        | Just `Country-City` name (required)                          |
+| domain                    | cbba.trufi.app            | The domain name of the city. If you use the mode `virtual domains` then be creative as this variable will then not be of use but needs to be available |
+| *... (depends on module)* | *... (depends on module)* | *... (depends on module)*                                    |
 
 Create a new one based on the already existing config files to get an idea of their internal structure. Do that for each city you want to host backend services for. *You may want to remove the other configuration city files which are meant to provide examples.* If there is only one city configuration file ending with `.env` left then you can use the commands without the `<name of city>` argument e.g. `add_module tileserver` or `server up tileserver`. But as soon as there are more than one then you need to specify `<name of city>` of course.
 
@@ -59,7 +55,16 @@ Read more about [including external modules](./docs/extend.md#external_modules)
 
 ## Setup & Maintenance
 
+### Initiate your own instance of this
+
+1. Clone of course
+2. Rename the cloned repo `trufi-server-multi` differently as you want to have a custom name describing what your clone of this structure is for. You might want to rename the folder to `website-services` to host websites and web platforms such as dashboards for your customers. Or `city-services` for services related to city governance.
+3. Clone a `modules` repository into this one e.g. https://github.com/trufi-association/trufi-website-modules or https://github.com/trufi-association/trufi-server-modules
+4. Execute `./init` and answer the setup questions
+
 ### Copying things over
+
+**TODO:** Move somewhere else
 
 Definitely you used our tools in the [Trufi Server Resources](https://github.com/trufi-server-resources) you generate all the data you need for the backend tools here. Excellent because the structure there is to 100% compactible to this one and you don't need to figure out how to copy/move things over to here. See also the concept of [Resource Binding](https://github.com/trufi-association/trufi-server-resources#main-output-folder) we introduced. But anyway now come the smart people to play and you can be one of them.
 

@@ -1,4 +1,5 @@
 #!/bin/python3 
+from genericpath import isfile
 import yaml, os, sys
 
 def redprint(text):
@@ -57,12 +58,42 @@ for module in os.listdir(modulesPath):
 			
 		for service in servicesToRename:
 			newName = module + "-" + service.replace("-$city_normalize", "") + "-$city_normalize"
-			print("      renaming to '{}' ...".format(newName))
 			dockercompose["services"][newName] = dockercompose["services"][service]
 			del dockercompose["services"][service]
 			
-		dockercompose["networks"]["default"]["name"] = "$projectname"
+		dockercompose["networks"]["default"]["name"] = os.path.basename(os.getcwd())
 				
 		sfile = open(os.path.join(moduleDir, "docker-compose.yml"), "w")
+		sfile.write(yaml.dump(dockercompose, sort_keys=False, default_flow_style=False))
+		sfile.close()
+
+orangeprint("patching chief plugins")
+pluginsChiefDir = os.path.join("plugins", "chief")
+for chief in os.listdir(pluginsChiefDir):
+	chiefPath = os.path.join(pluginsChiefDir, chief)
+	if os.path.isfile(chiefPath) and chiefPath.endswith(".yml"):
+		orangeprint("  modifying chief plugin '{}' ('{}') ...".format(chief.split(".", -1)[0], pluginsChiefDir))
+		sfile = open(chiefPath, "r")
+		dockercompose = yaml.safe_load(sfile.read())
+		sfile.close()
+		os.remove(chiefPath)
+
+		servicesToRename = []
+		for service in dockercompose["services"]:
+			print("    service '{}'".format(service))
+			if not service.startswith("chief-"):
+				servicesToRename.append(service)
+
+			if "ports" in dockercompose["services"][service]:
+				print("      remove port binding ...")
+				del dockercompose["services"][service]["ports"]
+			
+		dockercompose["networks"]["default"]["name"] = os.path.basename(os.getcwd())
+
+		for service in servicesToRename:
+			dockercompose["services"]["chief-" + service] = dockercompose["services"][service]
+			del dockercompose["services"][service]
+
+		sfile = open(chiefPath, "w")
 		sfile.write(yaml.dump(dockercompose, sort_keys=False, default_flow_style=False))
 		sfile.close()
