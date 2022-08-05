@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Implements the following feature:
+# If there is only one city configuration file ending with `.env` left then you can use the commands without the `<name of city>` argumente.g. `add_module tileserver` or `server up tileserver`. But as soon as there are more than one then you need to specify `<name of city>` of course.
+
+determineAmountOfEnabledCityConfigurationFiles() {
+	# return the amount of available configuration files ending with '.env'
+#                                                return all content of directory 'config'
+#                                                          filter by all content having '.env' at the end ($)
+#                                                                          count the filtered output
+	local amountOfEnabledCityConfigurationFiles=`ls config | grep "\.env$" | wc -l`
+	if [ $amountOfEnabledCityConfigurationFiles -eq 1 ]; then
+		echo "$(tput blink)$(tput setaf 6)Only one city configuration file exists, enabling feature 'single environment' ...$(tput sgr0)"
+		cityfile="./config/`ls config | grep "\.env$"`"
+	fi
+}
+determineAmountOfEnabledCityConfigurationFiles

@@ -4,9 +4,7 @@ name_single="Trufi Server"
 filesDir="files"
 
 module_name="Trufi Server Modules"
-module_url="https://github.com/trufi-association/trufi-server-modules"
-module_dir="./trufi-server-modules"
-module_dir_renamed="modules"
+module_dir="modules"
 
 hostname=`hostname`
 
@@ -40,54 +38,23 @@ checkDecision() {
 greenecho "###################################################"
 greenecho "      Setup for '$name'      "
 greenecho "###################################################"
-
-blueecho "1. Download modules"
-echo "This script will clone a copy of '$module_name' which contains the necessary modules needed to run services for cities"
-echo "After cloning you will be asked some questions needed to do the initial setup."
-echo "--------------------------------------------"
-echo "DEVELOPER ATTENTION!"
-echo "All modules are fetched from '$module_name' (a git repository). Propose changes to them there and not here."
-echo "- Do not make changes to the modules. We will reject PR's containing them. If you want to develop around the 'copy' then please fork $module_url and work on it. Systematic changes which this structure needs will be applied by the subsequent 'modifyComposes' script."
-echo "- If you want to make changes to this init script or to the contents in the directory 'files' then you are free to do so on your own fork! We encourage you to make PR's."
-echo " - If you make changes to any or both projects we encourage you to upstream them by opening a PR. Your change can be useful and can improve our projects :)"
-echo "--------------------------------------------"
-echo 
-maxcount=3
-for i in {1..2}; do
-	echo -ne "showing prompt in $((maxcount - i)) ...\033[0K\r" # https://stackoverflow.com/questions/5861428/bash-script-erase-previous-line
-	sleep 1
-done
-echo -ne "Do you want to process? (y|n):\033[0;34m "
-read decision
-checkDecision $decision "y"
-echo -en "\033[0;m"
-
-if ! [ -d "$module_dir_renamed" ]; then
-	orangeecho "   cloning '$module_name' ..."
-	git clone $module_url
-	if ! [ -d "$module_dir" ]; then
-		echo "Error: Clone of '$module_url' failed! Do I have internet access or the necessary write permission to the local filesystem?">&2
-		exit 1
-	fi
-else
-	module_dir=$module_dir_renamed
+_moduleDir=( `ls | grep "modules"` )
+if [ ${#_moduleDir[@]} -gt 0 ] && ! [ -d "$module_dir" ]; then
+	orangeecho "renaming '${_moduleDir[0]}' to '$module_dir' ..."
+	mv "${_moduleDir[0]}" "$module_dir"
 fi
 
-# prevents from accidentally committing and uploading changes made by this script
-orangeecho "   prevent users from accidentally uploading their changes in '$module_name' to git ..."
-rm -R $module_dir/.git --force
+if ! [ -d "$module_dir" ]; then
+	echo "Please clone a 'modules' repository first and then execute me!"
+	exit 2
+fi
 
-orangeecho "   renaming '$module_dir' to '$module_dir_renamed' ..."
-mv $module_dir $module_dir_renamed
-module_dir=$module_dir_renamed
-
-orangeecho "   removing incompactible modules ..."
+orangeecho "removing incompactible modules ..."
 rm -r $module_dir/nginx-*
 
 python3 modifyComposes.py
 
-greenecho "   Modules downloaded!"
-blueecho "2. Turn SSL on? This is recommended if clients directly communicate with this backend without a SSL enabled proxy between"
+blueecho "Turn SSL on? This is recommended if clients directly communicate with this backend without a SSL enabled proxy between"
 echo -ne "[y|n]:\033[0;34m "
 read decision
 echo -ne "\033[0;m"
@@ -102,7 +69,7 @@ else
 	exit 1
 fi
 
-blueecho "3. Turn on feature 'Intraweb' to wire up a intraweb for sysadmins with access to this server can use for troubleshooting modules etc.?"
+blueecho "Turn on feature 'Intraweb' to wire up a intraweb for sysadmins with access to this server can use for troubleshooting modules etc.?"
 echo "This intraweb is only accessible through SSH (thanks to SSH port forwarding)"
 echo -ne "[y|n]:\033[0;34m "
 read decision
@@ -116,7 +83,7 @@ else
 	exit 1
 fi
 
-blueecho "4. Specify mode"
+blueecho "Specify mode"
 MODE_REALDOMAINS="real domains"
 MODE_VIRTUALDOMAINS="virtual domains"
 CURMODE=""
@@ -166,7 +133,7 @@ else
 	exit 1
 fi
 
-blueecho "4. Save & load configuration"
+blueecho "Save & load configuration ..."
 # save
 echo "ssl=\"$ssl\"
 curmode=\"$CURMODE\"
@@ -174,7 +141,7 @@ intraweb=\"$intraweb\"">"./data/instance.conf"
 # load
 source ./lib/env
 
-blueecho "5. NGINX configuration"
+blueecho "NGINX configuration"
 orangeecho "   preparing nginx configuration ..."
 dest="./data/nginx/interweb/virtualdomains.conf"
 if ! [ -f "$dest" ] && [ "$CURMODE" = "$MODE_VIRTUALDOMAINS" ]; then

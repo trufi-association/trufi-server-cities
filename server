@@ -1,4 +1,5 @@
 #!/bin/bash
+source ./lib/singlenv
 source ./lib/colorful
 source ./lib/env
 source ./lib/utils
@@ -85,7 +86,7 @@ curActionArgs="${args[@]}"
 ## batch execution (based on what an iterator has found previously)
 performExecution() {
 	if [ -z "${!citiesPerModule[@]}" ]; then # a message for developers
-		redecho "Trying to call 'performExecution' without running 'performExecution \"noexecute\"' before leads to this error message!"
+		redecho "Trying to call 'performExecution' without running 'performIteration \"noexecute\"' before leads to this error message!"
 		echo "crying ..."
 		return
 	
@@ -121,7 +122,9 @@ iterateThroughAllCitiesOfModule() {
 			addedCities+="${composeFile/'.yml'/''} "
 		fi
 	done
-	citiesPerModule["modules/$1"]=$addedCities
+	if [ -n "$addedCities" ]; then
+		citiesPerModule["modules/$1"]=$addedCities
+	fi
 	cd "../../"
 }
 
@@ -234,6 +237,12 @@ if [ $pluginsInvoked -eq 1 ]; then # a plugin hasn't been invoked
 	fi
 fi
 
+# Detect and add plugins for chiefs (files in 'plugins/chief' ending in '.yml')
+chief_plugins=""
+for i in `ls plugins/chief | grep "\.yml$"`; do
+	chief_plugins+="-f plugins/chief/$i"
+done
+
 # Determine if there are still running services after certain action has been performed
 ## Difference between 'grep "${projectname}-chief"' and '-p "${projectname}"':
 ## grep "${projectname}-chief": This is a combination of the project name being the same for all modules and all chiefs running under this structure AND the prefix of the service names in the docker-compose.yml
@@ -242,25 +251,25 @@ runningServices=`sudo docker container ls | grep "${projectname}" | wc -l` # cou
 allServiceContainers=`sudo docker container ls --all | grep "${projectname}" | wc -l` # count all services including the chief ones
 runningChiefs=`sudo docker container ls | grep "${projectname}_chief-" | wc -l` # count running chiefs
 allChiefContainers=`sudo docker container ls --all | grep "${projectname}_chief-" | wc -l`
-allChiefsAvailable=`sudo docker-compose -p "${projectname}" -f docker-compose.yml ps --services | wc -l` # count all chiefs
+allChiefsAvailable=`sudo docker-compose -p "${projectname}" -f docker-compose.yml $chief_plugins ps --services | wc -l` # count all chiefs
 ## if no service is running (except the chiefs)
 if [ 0 -eq $((runningServices-runningChiefs)) ]; then
 	### check if they have been removed completely (except the chiefs)
 	if [ 0 -eq $((allServiceContainers-runningChiefs)) ]; then # also stop and remove all chiefs
 		orangeecho "turning down chiefs as there are no docker containers left ..."
-		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" down # so we can even turn down and remove the chief ones
+		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins down # so we can even turn down and remove the chief ones
 	else ### not all services have been removed but they have been stopped (chiefs not counted in)
 		orangeecho "stopping chiefs as there are only stopped containers ..."
-		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" stop # so we just stop the chiefs
+		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins stop # so we just stop the chiefs
 	fi
 else ## if services are running (chiefs not counted in)
 	### if amount of chiefs having containers is greater than the amount of running ones
 	if [ $allChiefContainers -gt $runningChiefs ]; then
 		orangeecho "start chiefs as there are running docker containers ..."
-		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" start # start them all
+		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins start # start them all
 	### if amount of chiefs (including ones without a container) is greater than the amount of existing chief containers
 	elif [ $allChiefsAvailable -gt $allChiefContainers ]; then
 		orangeecho "turning up chiefs as there are running docker containers ..."
-		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" up --build --detach # wire up the missing chiefs
+		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins up --build --detach # wire up the missing chiefs
 	fi
 fi

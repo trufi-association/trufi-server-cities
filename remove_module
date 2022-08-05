@@ -2,6 +2,7 @@
 
 projectname=`basename "$PWD"`
 
+source ./lib/singlenv
 source ./lib/colorful
 
 # Removes all occurrence of a configuration e.g. to make intraweb work

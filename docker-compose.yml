@@ -1,24 +1,21 @@
 version: '3'
 services:
-
   chief-nginx:
-    image: nginx #:1.15-alpine
+    image: nginx
     ports:
-      - "8290:80" # HTTP
-      - "8300:443" # HTTPS
-      - "127.0.0.1:8090:8090" # intraweb port.
+    - 8290:80
+    - 8300:443
+    - 127.0.0.1:8090:8090
     volumes:
-      - ./data/nginx/interweb:/etc/nginx/interweb:ro
-      - ./data/nginx/intraweb:/etc/nginx/intraweb:ro
-      - ./data/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./data/nginx/inc:/etc/nginx/inc:ro
-      - ./data/logs/nginx:/var/log/nginx/
-      - ./data/letsencrypt/config:/etc/letsencrypt
-      #- ./data/certbot/www:/var/www/certbot
-      - ./data/nginx/www:/var/www/:ro
-    command: "nginx -g \"daemon off;\""
+    - ./data/nginx/interweb:/etc/nginx/interweb:ro
+    - ./data/nginx/intraweb:/etc/nginx/intraweb:ro
+    - ./data/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    - ./data/nginx/inc:/etc/nginx/inc:ro
+    - ./data/logs/nginx:/var/log/nginx/
+    - ./data/letsencrypt/config:/etc/letsencrypt
+    - ./data/nginx/www:/var/www/html:ro
+    command: nginx -g "daemon off;"
     restart: unless-stopped
-
 networks:
   default:
     name: trufi-server-multi

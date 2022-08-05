@@ -4,6 +4,7 @@
 
 args=( $@ )
 
+source ./lib/singlenv
 source ./lib/colorful
 source ./lib/utils
 projectname=`basename "$PWD"`

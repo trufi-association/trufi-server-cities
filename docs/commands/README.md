@@ -1,15 +1,19 @@
 # Command documentation
 
-See [how to run scripts on linux](https://www.cyberciti.biz/faq/howto-run-a-script-in-linux/).
+See [how to run scripts on Linux](https://www.cyberciti.biz/faq/howto-run-a-script-in-linux/).
 
 ## Module management
 
-- [add_module](./docs/commands/add_module.md)
-- [remove_module](./docs/commands/remove_module.md)
-- [restart_module](./docs/commands/restart_module.md) (deprecated)
+- [add_module](./add_module.md)
+- [remove_module](./remove_module.md)
+- [restart_module](./restart_module.md) (deprecated)
+- [workon](./workon.md)
+- [modifyComposes](./modifyComposes.md)
+- [Using an external module not in the default package](../extend.md#external_modules)
 
 ## Other scripts
 
-- [server](./docs/commands/server.md)
-- [certify](./docs/commands/certify.md)
-- [viewlog](./docs/commands/viewlog.md)
+- [server](./server.md)
+- [certify](./certify.md)
+- [viewlog](./viewlog.md)
+

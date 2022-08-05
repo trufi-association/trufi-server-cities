@@ -2,15 +2,20 @@
 
 projectname=`basename "$PWD"`
 
+source ./lib/singlenv
 source ./lib/colorful
 source ./lib/env
 
 blueecho "1. perform some checks & normalizations ..."
 source ./lib/validation
 
-addModule() {
-	local modulename="$1"
-	blueecho "2. add module '$modulename' to city '$city'"
+compileCompose() {
+	blueecho "Add module '$modulename' to city '$city'"
+
+	if ! [ -f "$moduleDir/docker-compose.yml" ]; then
+		echo "   doing this makes no sense as the template file '$moduleDir/docker-compose.yml' does not exist!"
+		return
+	fi
 
 	# 1. Generate a docker-compose for the city (if not already existing)
 	ymlFile="$moduleDir/$city.yml"
@@ -18,8 +23,7 @@ addModule() {
 
 	if ! [ -f "$ymlFileInactive" ] && ! [ -f "$ymlFile" ]; then
 		orangeecho "   building & adding in directory '$moduleDir' ) ..."
-		export city_normalize="${city,,}"
-		(export `cat ./$cityfile | xargs`; export projectname="$projectname" 
+		(export `cat ./$cityfile | xargs`; export projectname="$projectname" ; export city_normalize="${city,,}"
 		envsubst < $moduleDir/docker-compose.yml > "$ymlFile" )
 		if ! [ -f "$ymlFile" ]; then
 			redecho "     Creating & adding operation failed! Do I have write access to '$moduleDir'?">&2
@@ -38,9 +42,11 @@ addModule() {
 	else
 		greenecho "   already added. No need to do it again :)"
 	fi
+}
 
+interwebConfiguration() {
 	# 2. Prepare interweb configuration
-	blueecho "3. add interweb nginx configuration"
+	blueecho "Add interweb nginx configuration"
 	orangeecho "   adding nginx configuration for '$modulename' in city '$city' ..."
 	
 	# This folder to be created somewhere under './data' is necessary to be able to store all nginx reverse proxy configurations for '$city' e.g. 'Germany-Hamburg'
@@ -51,16 +57,21 @@ addModule() {
 	nginxcitymoduleconf="$nginxcityfolder/$modulename.conf" # e.g. './data/nginx/interweb/Germany-Hamburg/tileserver.conf'
 	# This file ensures that traffic redirection to that module works
 	modulenginxconf="$moduleDir/nginx.conf" # e.g. './modules/tileserver/nginx.conf'
-	
+
 	# if a nginx reverse proxy configuration exists for this module
 	if [ -f "$modulenginxconf" ]; then # read it into memory (to be able to alter it later)
 		modulenginxconf_content=`cat "$modulenginxconf"`
+		modulenginxconf_content=`
+export \`cat $cityfile | xargs\`
+export projectname="$projectname"
+export modulename="$modulename"
+export city_normalize="${city,,}"
+echo "$modulenginxconf_content" | envsubst`
 	else
 		# if no module nginx reverse configuration exists then abbort
-		redecho "     Error: there is no nginx configuration ('nginx.conf') for module '$modulename' available! Fix this and run this script again"
-		exit 1
+		return
 	fi
-	
+
 	# If that folder does not exist
 	if ! [ -d "$nginxcityfolder" ]; then # create it
 		orangeecho "     creating nginx server configuration folder for city '$city' ..."
@@ -81,7 +92,7 @@ addModule() {
 	fi
 
 	# 4. Generating nginx module configuration
-	orangeecho "     copying & altering nginx module configuration for module '$modulename' to nginx server configuration for city '$city' (overwriting if already existing) ..."
+	orangeecho "     copying & altering nginx module configuration for module '$modulename' to nginx server configuration for city '$city' ..."
 	if ! [ -f "$nginxcitymoduleconf" ]; then
 		# search for pattern 'http://otp:' or 'http://otp;' or 'http://otp/'
 		# and replace it with 'http://otp-$city:' or 'http://otp-$city;' or 'http://otp-$city/'
@@ -99,7 +110,9 @@ print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://${modulename}-\\\\\\1-${city,,}
 	else
 		greenecho "       already generated. No need to do it again :)"
 	fi
-	
+}
+
+prepareLogging() {
 	# 5. Logging
 	orangeecho "   creating logging structure ..."
 	if ! [ -d "./data/logs/nginx/$domain" ]; then
@@ -107,10 +120,18 @@ print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://${modulename}-\\\\\\1-${city,,}
 	else
 		greenecho "     not necessary as already existing :)"
 	fi
+}
 
+intrawebConfiguration() {
 	# 6. Intraweb configuration
 	if [ "$intraweb" = "yes" ]; then
-		blueecho "4. add intraweb nginx configuration ..."
+		blueecho "Add intraweb nginx configuration ..."
+		
+		if ! [ -f "$moduleDir/docker-compose.yml" ]; then
+			echo "   doing this makes no sense as the template file '$moduleDir/docker-compose.yml' does not exist!"
+			return
+		fi
+
 		orangeecho "   adding nginx configuration for '$modulename' in city '$city' ..."
 		
 		nginxcityfolder="./data/nginx/intraweb/$city"
@@ -123,7 +144,7 @@ print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://${modulename}-\\\\\\1-${city,,}
 		
 		orangeecho "     completing nginx configuration for city '$city' ..."
 		if ! [ -f "$nginxcityconf" ]; then
-			echo "include /etc/nginx/intraweb/$city/*/*.conf ;" > "$nginxcityconf"
+			echo "include /etc/nginx/intraweb/$city/*.conf ;" > "$nginxcityconf"
 		else
 			greenecho "     not necessary as already completed :)"
 		fi
@@ -148,14 +169,23 @@ print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://${modulename}-\\\\\\1-${city,,}
 			fi
 		done
 	fi
+}
+
+addModule() {
+	modulename="$1"
+
+	compileCompose
+	interwebConfiguration
+	prepareLogging
+	intrawebConfiguration
 
 	source "lib/plugin"
 	invokeAllPluginsOf "add_module"
 
-	blueecho "5. Wiring up module '$modulename' for city '$city'"
+	blueecho "Wiring up module '$modulename' for city '$city'"
 	./server "${city}" up "$modulename"
 	
-	greenecho "added trufi module '$modulename' to city '$city'"
+	greenecho "Added trufi module '$modulename' to city '$city'!"
 }
 
 moduleNotFound=""

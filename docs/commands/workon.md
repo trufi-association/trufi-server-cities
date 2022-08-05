@@ -30,3 +30,6 @@ you just need to type
 add tileserver
 ```
 
+.
+
+Before any subsequent `. ./workon <name of city>` a `close` is recommended.
