@@ -31,7 +31,6 @@ for module in os.listdir(modulesPath):
 		sfile = open(composefile, "r")
 		dockercompose = yaml.safe_load(sfile.read())
 		sfile.close()
-		os.remove(composefile)
 		
 		servicesToRename = []
 		for service in dockercompose["services"]:
@@ -67,6 +66,16 @@ for module in os.listdir(modulesPath):
 		sfile.write(yaml.dump(dockercompose, sort_keys=False, default_flow_style=False))
 		sfile.close()
 
+orangeprint("patching chief")
+sfile = open("docker-compose.yml", "r")
+dockercompose = yaml.safe_load(sfile.read())
+sfile.close()
+dockercompose["networks"]["default"]["name"] = os.path.basename(os.getcwd())
+sfile = open("docker-compose.yml", "w")
+sfile.write(yaml.dump(dockercompose, sort_keys=False, default_flow_style=False))
+sfile.close()
+
+
 orangeprint("patching chief plugins")
 pluginsChiefDir = os.path.join("plugins", "chief")
 for chief in os.listdir(pluginsChiefDir):
@@ -76,7 +85,6 @@ for chief in os.listdir(pluginsChiefDir):
 		sfile = open(chiefPath, "r")
 		dockercompose = yaml.safe_load(sfile.read())
 		sfile.close()
-		os.remove(chiefPath)
 
 		servicesToRename = []
 		for service in dockercompose["services"]:

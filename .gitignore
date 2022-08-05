@@ -1,4 +1,4 @@
-trufi-server-modules
+trufi-*-modules
 modules
 data/nginx/interweb
 data/nginx/intraweb
@@ -11,3 +11,4 @@ data/www
 data/certbot
 .vscode
 test
+.directory
