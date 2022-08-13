@@ -13,7 +13,7 @@ services:
     - ./data/nginx/inc:/etc/nginx/inc:ro
     - ./data/logs/nginx:/var/log/nginx/
     - ./data/letsencrypt/config:/etc/letsencrypt
-    - ./data/nginx/www:/var/www/html:ro
+    - ./data/www:/var/www/html:ro
     command: nginx -g "daemon off;"
     restart: unless-stopped
 networks:
