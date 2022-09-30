@@ -39,12 +39,12 @@ servicename=${servicename/$serviceprefix/""}
 
 if [ -n "$city" ]; then
 	cd "modules/$modulename"
-	allServices=`sudo docker-compose -p "$projectname" -f "${city}.yml" ps --services`
+	allServices=`sudo docker compose -p "$projectname" -f "${city}.yml" config --services`
 	cd "../../"
 else
 	serviceame="${args[0]}"
 	removeFirstElemInArgs
-	allServices=`sudo docker-compose -p "$projectname" -f "docker-compose.yml" ps --services`
+	allServices=`sudo docker compose -p "$projectname" -f "docker-compose.yml" config --services`
 fi
 if [ -z `echo $allServices | grep $servicename` ]; then
 	redecho "Error: You specified an invalid name of a service in module '$modulename' to read log from">&2

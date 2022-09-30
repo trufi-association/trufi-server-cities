@@ -39,7 +39,7 @@ removeModule() {
 	if [ "$intraweb" = "yes" ]; then
 		blueecho "3. remove intraweb nginx configuration"
 		cd modules/$modulename
-		allServices=`sudo docker-compose -p "$projectname" -f "${city}.yml" ps --services`
+		allServices=`sudo docker compose -f "${city}.yml" config --services`
 		allServices=( $allServices )
 		cd ../../
 		# iterate through names of all services of that city in the module

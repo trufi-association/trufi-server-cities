@@ -103,7 +103,7 @@ performExecution() {
 				if [ -n "$1" ]; then # assume a function when given
 					"$@" "$module" "$city";
 				else
-					sudo docker-compose -p "${projectname}" -f "$city.yml" $curAction $curActionArgs
+					sudo docker compose -p "${projectname}" -f "$city.yml" $curAction $curActionArgs
 				fi
 			done
 
@@ -251,25 +251,25 @@ runningServices=`sudo docker container ls | grep "${projectname}" | wc -l` # cou
 allServiceContainers=`sudo docker container ls --all | grep "${projectname}" | wc -l` # count all services including the chief ones
 runningChiefs=`sudo docker container ls | grep "${projectname}_chief-" | wc -l` # count running chiefs
 allChiefContainers=`sudo docker container ls --all | grep "${projectname}_chief-" | wc -l`
-allChiefsAvailable=`sudo docker-compose -p "${projectname}" -f docker-compose.yml $chief_plugins ps --services | wc -l` # count all chiefs
+allChiefsAvailable=`sudo docker compose -f docker-compose.yml $chief_plugins config --services | wc -l` # count all chiefs
 ## if no service is running (except the chiefs)
 if [ 0 -eq $((runningServices-runningChiefs)) ]; then
 	### check if they have been removed completely (except the chiefs)
 	if [ 0 -eq $((allServiceContainers-runningChiefs)) ]; then # also stop and remove all chiefs
 		orangeecho "turning down chiefs as there are no docker containers left ..."
-		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins down # so we can even turn down and remove the chief ones
+		sudo docker compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins down # so we can even turn down and remove the chief ones
 	else ### not all services have been removed but they have been stopped (chiefs not counted in)
 		orangeecho "stopping chiefs as there are only stopped containers ..."
-		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins stop # so we just stop the chiefs
+		sudo docker compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins stop # so we just stop the chiefs
 	fi
 else ## if services are running (chiefs not counted in)
 	### if amount of chiefs having containers is greater than the amount of running ones
 	if [ $allChiefContainers -gt $runningChiefs ]; then
 		orangeecho "start chiefs as there are running docker containers ..."
-		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins start # start them all
+		sudo docker compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins start # start them all
 	### if amount of chiefs (including ones without a container) is greater than the amount of existing chief containers
 	elif [ $allChiefsAvailable -gt $allChiefContainers ]; then
 		orangeecho "turning up chiefs as there are running docker containers ..."
-		sudo docker-compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins up --build --detach # wire up the missing chiefs
+		sudo docker compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins up --build --detach # wire up the missing chiefs
 	fi
 fi

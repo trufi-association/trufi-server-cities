@@ -21,13 +21,13 @@ We introduce "chiefs" which are all services specified in the `docker-compose.ym
 But you can add/remove chiefs as you please. Just edit `docker-compose.yml` accordingly. Command `server` cannot detect modifications automatically so you have to execute
 
 ```bash
-sudo docker-compose -p `basename "$PWD"` -f "plugins/chief/<name of chiefs>.yml" up --build --detach
+sudo docker compose -p `basename "$PWD"` -f "plugins/chief/<name of chiefs>.yml" up --build --detach
 ```
 
 e.g. if you [changed something on the ports](#changing_ports_of_chief-nginx) and you want to update the already running `chief-nginx` then execute
 
 ```bash
-sudo docker-compose -p `basename "$PWD"` -f "docker-compose.yml" up "chief-nginx" --build --detach
+sudo docker compose -p `basename "$PWD"` -f "docker-compose.yml" up "chief-nginx" --build --detach
 ```
 
 .

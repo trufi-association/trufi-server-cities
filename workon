@@ -11,6 +11,8 @@ orangeecho() {
 	echo -e "\033[1;33m$1\033[0;m"
 }
 
+orangeecho "This script has been deprecated and will be removed in the next major release v3.0.0"
+
 workon_requiredvariables=( "city" "otpversion" "domain" )
 workon_optionalvariables=( "email" )
 

@@ -5,12 +5,12 @@ pleasantUp() {
 	local module="$1"
 	local nameOfCity="$2"
 	# get names of all services of that city in the module
-	allServices=`sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" ps --services`
+	allServices=`sudo docker compose -p "$projectname" -f "${nameOfCity}.yml" config --services`
 	allServices=( $allServices )
 	
 	# iterate through names of all services of that city in the module
 	for servicename in "${allServices[@]}"; do # e.g. tileserver-ghana-accra, tileserver-germany-hamburg
-		isRunning=`sudo docker container ls | grep "${projectname}_${servicename}"` # prints a status line if the container with the name '${projectname}-${servicename}' is running otherwise it prints nothing
+		isRunning=`sudo docker container ls | grep "${projectname}.${servicename}"` # prints a status line if the container with the name '${projectname}-${servicename}' is running otherwise it prints nothing
 		if [ -n "$isRunning" ]; then
 			orangeecho "    - updating docker service '$servicename' without downtime ..."
 			
@@ -20,7 +20,7 @@ pleasantUp() {
 			curContainerId="${curContainerId[0]}"
 			
 			# create a new container of service 'servicename' (scale up)
-			sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" up --detach --scale $servicename=2 --no-recreate $servicename
+			sudo docker compose -p "$projectname" -f "${nameOfCity}.yml" up --detach --scale $servicename=2 --no-recreate $servicename
 			
 			sleep 5 # TODO: healtheck instead of waiting five seconds in hope this is enough for the startup process
 			
@@ -28,10 +28,10 @@ pleasantUp() {
 			sudo docker rm -f "$curContainerId"
 			
 			# scale back
-			sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" up --detach --scale $servicename=1 --no-recreate $servicename
+			sudo docker compose -p "$projectname" -f "${nameOfCity}.yml" up --detach --scale $servicename=1 --no-recreate $servicename
 		else
 			orangeecho "    - wiring up a docker container for service '$servicename' ..."
-			sudo docker-compose -p "$projectname" -f "${nameOfCity}.yml" up --build --detach $servicename
+			sudo docker compose -p "$projectname" -f "${nameOfCity}.yml" up --build --detach $servicename
 		fi
 	done
 }

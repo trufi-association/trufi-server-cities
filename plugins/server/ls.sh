@@ -5,22 +5,26 @@
 
 # Query construction to filter container names (positive filter)
 ##  Syntax : <projectname>_<modulename>-<servicename>-<city>_<a number>
+##  Syntax : <projectname>-<modulename>-<servicename>-<city>-<a number>
 ##           ..............
-query="${projectname}_" # match $projectname by default and always
+query="${projectname}." # match $projectname by default and always
 
 ##  Syntax : <projectname>_<modulename>-<servicename>-<city>_<a number>
+##  Syntax : <projectname>-<modulename>-<servicename>-<city>-<a number>
 ##                         ............
 if [ -n "$curModule" ]; then
-	query+="${curModule}-" # and match module $curModule e.g. match module 'tileserver'
+	query+="${curModule}." # and match module $curModule e.g. match module 'tileserver'
 else
-	query+=".*-" # and match any modules
+	query+=".*" # and match any modules
 fi
 
 ##  Syntax : <projectname>_<modulename>-<servicename>-<city>_<a number>
+##  Syntax : <projectname>-<modulename>-<servicename>-<city>-<a number>
 ##                                      ..............
 query+=".*-" # and match any services
 
 ##  Syntax : <projectname>_<modulename>-<servicename>-<city>_<a number>
+##  Syntax : <projectname>-<modulename>-<servicename>-<city>-<a number>
 ##                                                    ...... 
 if [ "$cityScope" = "city" ]; then
 	query+="${city,,}" # and match city ${city,,} e.g. match city 'germany-hamburg'
@@ -35,10 +39,9 @@ fi
 #                                get results of query,
 #                                        get chief services
 #                                                              and the status table heading
-#sudo docker container ls --format "table {{.Names}} \t {{.CreatedAt}} \t {{.Status}}" --no-trunc | grep "$query\|${projectname}_chief\|NAMES"
 body=`eval sudo docker container ls ${curActionArgs[@]}`
 heading=`echo "$body" | sed -ne "1p"`
-body=`echo "$body" | grep "$query\|${projectname}_chief"`
+body=`echo "$body" | grep "$query\|${projectname}.chief"`
 
 body=${body//chief-/"\033[0;35mchief\033[0;m-"}
 echo -e "\033[1;37m${heading}\033[0;m"
