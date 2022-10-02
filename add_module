@@ -212,3 +212,5 @@ if ! [ -z "$moduleNotFound" ]; then
 	ls -p ./modules | grep -v /
 	exit 1
 fi
+
+./server reload nginx
