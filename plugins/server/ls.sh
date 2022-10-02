@@ -26,10 +26,10 @@ query+=".*-" # and match any services
 ##  Syntax : <projectname>_<modulename>-<servicename>-<city>_<a number>
 ##  Syntax : <projectname>-<modulename>-<servicename>-<city>-<a number>
 ##                                                    ...... 
-if [ "$cityScope" = "city" ]; then
-	query+="${city,,}" # and match city ${city,,} e.g. match city 'germany-hamburg'
+if [ -n "$curMandant" ]; then
+	query+="${mandant,,}" # and match mandant ${mandant,,} e.g. match mandant 'germany-hamburg' or 'ITHouse'
 else
-	query+=".*" # and match any cities
+	query+=".*" # and match any mandants
 fi
 
 if [ -z "$curActionArgs" ]; then

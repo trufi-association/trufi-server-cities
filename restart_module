@@ -2,6 +2,7 @@
 
 projectname=`basename "$PWD"`
 
+source ./lib/env
 source ./lib/singlenv
 source ./lib/colorful
 
@@ -14,15 +15,15 @@ modulename="${args[0]}"
 moduleDir="./modules/$modulename"
 ## if $modulename is empty or $moduleDir does not exist
 if [ -z $modulename ] || ! [ -d "$moduleDir" ]; then
-	redecho "  Error: You must specify a valid name of an module to add to city '$city'">&2
+	redecho "  Error: You must specify a valid name of an module to add to mandant '$mandant'">&2
 	echo "  A list of modules available:"
 	ls -p ./modules | grep -v /
 	exit 1
-elif [ -f "$moduleDir/$city.yml.inactive" ]; then
-	redecho "  Module '$modulename' inactive in city '$city'. Inactive modules cannot be restarted!"
+elif [ -f "$moduleDir/$mandant.yml.inactive" ]; then
+	redecho "  Module '$modulename' inactive in mandant '$mandant'. Inactive modules cannot be restarted!"
 	exit 1
 fi
 
 cd "$moduleDir"
-sudo docker compose -f "$city.yml" --env-file ../../$cityfile restart
+sudo $DOCKER_COMPOSE -f "$mandant.yml" --env-file ../../$mandantFile restart
 cd ../../

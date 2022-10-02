@@ -7,20 +7,31 @@ source ./lib/utils
 
 # validations
 
-## if $cityfile is empty but a valid city configuration name has been provided
+normalizeToMandantVariable() {
+	## $city --> $mandant code guardening without breaking things. If $mandant hasn't been populated then
+	if [ -z "$mandant" ]; then
+		mandant="${city}" # try $city instead
+	fi
+}
+
+## if $mandantFile is empty but a valid mandant configuration name has been provided
 if [ -f "./config/${args[0]/".env"/""}.env" ]; then
 	envname=${args[0]//".env"/""}
-	cityfile="./config/$envname.env"
+	mandantFile="./config/$envname.env"
+	cityfile="$mandantFile"
 	removeFirstElemInArgs
 fi
 
-## if $cityfile contains something but the $city environment variable hasn't been populated
-if [ -n "$cityfile" ] && [ -z "$city" ]; then
-	orangeecho "  importing city file '$cityfile' ..."
-	source ./$cityfile
+normalizeToMandantVariable
+
+## if $mandantFile contains something but the $mandant environment variable hasn't been populated
+if [ -n "$mandantFile" ] && [ -z "$mandant" ]; then
+	orangeecho "  importing mandant file '$mandantFile' ..."
+	source ./$mandantFile
+	normalizeToMandantVariable
 fi
 
-## if $city is empty
-if [ -z "$city" ]; then
-	redecho "  Error: Your config file at '$cityfile' hasn't been loaded correctly or is corrupted. Try executing '. ./workas' . Are you sure you specified the 'city' variable in that env file?">&2
+## if $mandant is empty
+if [ -z "$mandant" ]; then
+	redecho "  Error: Your config file at '$mandantFile' hasn't been loaded correctly or is corrupted. Are you sure you specified the 'mandant' variable in that env file?">&2
 fi

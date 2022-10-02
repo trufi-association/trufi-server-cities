@@ -4,7 +4,7 @@
 
 *This is deprecated and will be removed soon!*
 
-- Command: `restart_module <name of city> <module name>`
+- Command: `restart_module <name of mandant> <module name>`
 - Example: `restart_module "Bolivia-Cochabamba" otp`
 - Example (using `workon` script): `restart_module otp`
 

@@ -3,7 +3,7 @@
 # reload action for 'nginx' hardcoded as this is the main module not dynamically add-/removeable
 if [ "$curModule" = "nginx" ]; then
 	orangeecho "reloading nginx configuration without the need to restart nginx ..."
-	citiesPerModule["./"]="docker-compose"
+	mandantsPerModule["./"]="docker-compose"
 	curAction="exec"
 	curActionArgs="chief-nginx nginx -s reload"
 	performExecution
@@ -16,10 +16,10 @@ else
 			for reloadCMD in "${modreload[@]}"; do
 				curActionArgs="$reloadCMD" # e.g. tileserver killall -HUP tileserver-gl
 				#                                   |
-				#                                   --> name of the service without '-${city_normalize}' because will be appended & expanded below
-				#orangeecho "Executing \033[0;34m${curActionArgs}\033[0;m inside container '${curActionArgs[0]}-${city,,}' in module '$curModule' of city '$city' ..."
+				#                                   --> name of the service without '-${mandant_normalize}' because will be appended & expanded below
+				#orangeecho "Executing \033[0;34m${curActionArgs}\033[0;m inside container '${curActionArgs[0]}-${mandant,,}' in module '$curModule' of mandant '$mandant' ..."
 				curActionArgs=( $curActionArgs )
-				curActionArgs[0]=${curActionArgs[0]}-${city,,} # name of the service (appended & expanded)
+				curActionArgs[0]=${curActionArgs[0]}-${mandant,,} # name of the service (appended & expanded)
 				curActionArgs="${curActionArgs[@]}"
 				performExecution
 			done

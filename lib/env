@@ -1,6 +1,7 @@
 #!/bin/bash
 
 instanceConfigPath="./data/instance.conf"
+DOCKER_COMPOSE="docker compose"
 source "$instanceConfigPath"
 
 MODE_REALDOMAINS="real domains"
@@ -9,8 +10,28 @@ NGINX_CONFIGPATH_SSLSERVER="./nginx/app.ssl.conf"
 NGINX_CONFIGPATH_NOSSLSERVER="./nginx/app.nossl.conf"
 
 if [ "$ssl" = "yes" ]; then
-	nginxcityconf_template_interweb="$NGINX_CONFIGPATH_SSLSERVER"
+	nginxMandantConfTemplateInterweb="$NGINX_CONFIGPATH_SSLSERVER"
+	nginxcityconf_template_interweb="$nginxMandantConfTemplateInterweb"
 else
-	nginxcityconf_template_interweb="$NGINX_CONFIGPATH_NOSSLSERVER"
+	nginxMandantConfTemplateInterweb="$NGINX_CONFIGPATH_NOSSLSERVER"
+	nginxcityconf_template_interweb="$nginxMandantConfTemplateInterweb"
 fi
-nginxcityconf_template_intraweb="./nginx/app.intraweb.conf"
+nginxDockerServiceConfTemplateInterweb="./nginx/app.intraweb.conf"
+nginxcityconf_template_intraweb="$nginxDockerServiceConfTemplateInterweb"
+
+# docker-compose compactibility
+checkDockerCompactibility() {
+	#                         stderr>stdout
+	local res=`docker compose 2>&1` # get output of that command and redirect stderr to stdout to fill the output into the variable
+	local res=`echo "$res" | grep "'compose' is not a docker command"` # search for that string
+	# if grep found something it returns the matches. Check if there are matches
+	if [ -n "$res" ]; then # means that there are matches so we are using an older version of docker
+		if [ -z `which docker-compose` ]; then
+			echo "Please install docker-compose or a new version of docker by following the installation guide at https://docs.docker.com/engine/install/ as the official repositories lag behind"
+			echo "Installing a new version of docker is the recommended method"
+			exit 5
+		fi
+		DOCKER_COMPOSE="docker-compose"
+	fi
+}
+checkDockerCompactibility

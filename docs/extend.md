@@ -16,7 +16,7 @@ In order to add more modules compatible to [trufi-server-modules](https://github
 
 ## Chiefs
 
-We introduce "chiefs" which are all services specified in the `docker-compose.yml` at project root **or** in `plugins/chief/*.yml`. They don't share the concept of modules and cities. As they don't share this concept you cannot add/remove them in the classical way with `add_module`/`remove_module`. Instead they will be ruled by `server` which creates/removes/starts/stops them automatically depending on what you do with the modules.
+We introduce "chiefs" which are all services specified in the `docker-compose.yml` at project root **plus** all in `plugins/chief/*.yml`. They don't share the concept of modules and mandants. As they don't share this concept you cannot add/remove them in the classical way with `add_module`/`remove_module`. Instead they will be ruled by `server` which creates/removes/starts/stops them automatically depending on what you do with the modules.
 
 But you can add/remove chiefs as you please. Just edit `docker-compose.yml` accordingly. Command `server` cannot detect modifications automatically so you have to execute
 
@@ -24,10 +24,22 @@ But you can add/remove chiefs as you please. Just edit `docker-compose.yml` acco
 sudo docker compose -p `basename "$PWD"` -f "plugins/chief/<name of chiefs>.yml" up --build --detach
 ```
 
+or 
+
+```bash
+sudo docker-compose -p `basename "$PWD"` -f "plugins/chief/<name of chiefs>.yml" up --build --detach
+```
+
 e.g. if you [changed something on the ports](#changing_ports_of_chief-nginx) and you want to update the already running `chief-nginx` then execute
 
 ```bash
 sudo docker compose -p `basename "$PWD"` -f "docker-compose.yml" up "chief-nginx" --build --detach
+```
+
+or
+
+```bash
+sudo docker-compose -p `basename "$PWD"` -f "docker-compose.yml" up "chief-nginx" --build --detach
 ```
 
 .
@@ -54,7 +66,7 @@ If you change the intraweb port of `chief-nginx` from `8090` to `8080` you need 
 
 ## Extending `server` script
 
-The script [server](./commands/server.md) is highly extensible. Developers can build their own actions for `server`. An action can run in *city scope*, *global scope* or *module scope* without having the developer to code support for all these scopes explicitly (mostly this will be the case). The code of each action lies in `./plugins/server` where each script file contains one action e.g. the action `up` has the file `./plugins/server/up`.sh. If `server` cannot find the action specified by the user it passes the specified action directly to docker-compose.
+The script [server](./commands/server.md) is highly extensible. Developers can build their own actions for `server`. An action can run in *mandant scope*, *global scope* or *module scope* without having the developer to code support for all these scopes explicitly (mostly this will be the case). The code of each action lies in `./plugins/server` where each script file contains one action e.g. the action `up` has the file `./plugins/server/up`.sh. If `server` cannot find the action specified by the user it passes the specified action directly to docker-compose.
 
 Scripts with file extension `.sh` will be considered sh and such will be sourced. All internal variables and functions in `server` are accessible from the code in the action script file too. They share the same code space.
 
@@ -64,19 +76,19 @@ The following variables are useful for you
 
 | Variable name  | Description                                                  |
 | -------------- | ------------------------------------------------------------ |
-| citiesPerModule | Only populated after a call to function `performIteration` an associative array with `module name` as keys and the cities as their values. Contains only added modules in added cities. Example:<br />tileserver -> Germany-Hamburg Ghana-Accra<br />otp -> Germany-Hamburg Ghana-Accra |
+| mandantsPerModule | Only populated after a call to function `performIteration` an associative array with `module name` as keys and the mandants as their values. Contains only added modules in added mandants. Example:<br />tileserver -> Germany-Hamburg Ghana-Accra<br />otp -> Germany-Hamburg Ghana-Accra |
 | projectname    | contains the project name used to tie all docker containers of this backend together. Used for the `-p` switch of `docker-compose` |
 | curModule      | Only populated when in module scope. Contains the name of the module e.g. `tileserver`  and **not** `./modules/tileserver` |
-| curCity        | Same as city                                                 |
-| city           | Only populated when in city or module scope. Contains the name of the city e.g. `Germany-Hamburg` and **not** `./config/Germany-Hamburg.conf` |
+| curMandant        | Same as mandant                                                 |
+| mandant           | Only populated when in mandant or module scope. Contains the name of the mandant e.g. `Germany-Hamburg` and **not** `./config/Germany-Hamburg.conf` |
 | curAction      | contains the name of the action the user specified on the command line. Will be the same as the name of the action script e.g. `run` and **not** `./plugins/server/up` |
 
 ### Functions
 
 | Function name                                                | Description                                                  |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| performIteration "execute"\|"noexecute" [<arguments for function 'performExecution'>] | Iterate through modules applying to the current scope, add them to the associative array `citiesPerModule` .<br />If argument "execute" has been specified then it will call function `performExecution` with the argument `<arguments for function 'performExecution'>`afterwards.<br />In case you specified `<arguments for function 'performExecution'>` this function will execute `performExecution <arguments for function 'performExecution'>` at the end. |
-| performExecution                                             | Execute `$curAction` on cities in modules found in `citiesPerModule` if no argument has been provided (default behaviour).<br />If an argument has been provided then it will be considered to be a function or command and will be called as such instead of the default behaviour. That passed function will be called with the following arguments:<br />`"$@" "$module" "$city"` e.g. `"plesantUp"` (the`$@` part)  `"tileserver"` (the `$module` part) ` "Germany-Hamburg"` (the `$city` part) or with additional arguments `"logs" "search:trufi" ` (the `$@` part) `"tileserver" Germany-Hamburg"`(the parts `$module` and `$city`) |
+| performIteration "execute"\|"noexecute" [<arguments for function 'performExecution'>] | Iterate through modules applying to the current scope, add them to the associative array `mandantsPerModule` .<br />If argument "execute" has been specified then it will call function `performExecution` with the argument `<arguments for function 'performExecution'>`afterwards.<br />In case you specified `<arguments for function 'performExecution'>` this function will execute `performExecution <arguments for function 'performExecution'>` at the end. |
+| performExecution                                             | Execute `$curAction` on mandants in modules found in `mandantsPerModule` if no argument has been provided (default behaviour).<br />If an argument has been provided then it will be considered to be a function or command and will be called as such instead of the default behaviour. That passed function will be called with the following arguments:<br />`"$@" "$module" "$mandant"` e.g. `"plesantUp"` (the`$@` part)  `"tileserver"` (the `$module` part) ` "Germany-Hamburg"` (the `$mandant` part) or with additional arguments `"logs" "search:trufi" ` (the `$@` part) `"tileserver" Germany-Hamburg"`(the parts `$module` and `$mandant`) |
 | attentionPrompt                                              | Displays a prompt to the user urging them to accept the execution of the action. It is used when the user tries to execute something dangerous like the action `down` in any mode. Pass a reason as the argument to the function call. The reason is a string and will be displayed to the user. Write as a reason the *reason* why your code wants the user to pay more attention than usual. |
 
 If your action does not change the amount of running docker containers for this project then consider putting a `exit 0` at the end so `server` does not run a costly operation to determine the difference. As your action does not touch the amount, the difference will never arise so we can safely skip this step thus providing a faster user experience. See end of code of plugin `ls` .
@@ -92,7 +104,7 @@ Extending them is easy. Just save your plugin under `./plugins/add_remove` **and
 | Variable     | Description                                                  |
 | ------------ | ------------------------------------------------------------ |
 | `modulename` | The name of the module e.g. `tileserver`                     |
-| `city`       | The name of the city e.g. `Ghana-Accra`                      |
+| `mandant`       | The name of the mandant e.g. `Ghana-Accra`                      |
 | `curmode`    | The domain mode we're in. This can hold the value `real domains` or `virtual domains` |
 
 ## Functions

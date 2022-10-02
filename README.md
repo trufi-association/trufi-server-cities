@@ -13,34 +13,35 @@ This is a structure build to host services following our `modules` convention. I
 
 This repository contains a bunch of service „modules“. Each "module" has "services" and contains a README. Each service has a specified job and deals as a module component.
 
-In order to be able to host multiple instances of a modules we also introduce the concept of a "city". Each city has a config in `./config` directory and can have a different set of "modules" enabled. For example: city 'Germany-Hamburg' can have the modules `tileserver`, `photon` and `otp` enabled. Another city 'Bolivia-Cochabamba' can have the modules `tileserver` and `otp` enabled. You see here is `photon` missing and that is completely ok. Cities are strictly taken apart from each other.
+In order to be able to host multiple instances of a modules we also introduce the concept of a "mandant". Each mandant has a config in `./config` directory and can have a different set of "modules" enabled. For example: Mandant 'Germany-Hamburg' can have the modules `tileserver`, `photon` and `otp` enabled. Another mandant 'Bolivia-Cochabamba' can have the modules `tileserver` and `otp` enabled. You see here is `photon` missing and that is completely ok. Mandants are strictly taken apart from each other.
 
-At last we introduce "chiefs" which are all services specified in the `docker-compose.yml` at project root. They don't share the concept of modules and cities. As they don't share this concept you cannot add/remove them in the classical way with `add_module`/`remove_module`. Instead they will be ruled by `server` which creates/removes/starts/stops them automatically depending on what you do with the modules.
+At last we introduce "chiefs" which are all services specified in the `docker-compose.yml` at project root + those specified in `./plugins/chief` in a `*.yml` file. They don't share the concept of modules and mandants. As they don't share this concept you cannot add/remove them in the classical way with `add_module`/`remove_module`. Instead they will be ruled by `server` which creates/removes/starts/stops them automatically depending on what you do with the modules.
 
 [Extending Trufi Multi-Instance Server - add/remove chiefs](./docs/extend.md#chiefs)
 
 ## Config
 
-### City
+### Mandant
 
-The city config files are located inside `./config` folder, you can create a new one providing your own variables:
+The mandant config files are located inside `./config` folder, you can create a new one providing your own variables:
 
 | variable                  | example                   | description                                                  |
 | ------------------------- | ------------------------- | ------------------------------------------------------------ |
-| city                      | Bolivia-Cochabamba        | Just `Country-City` name (required)                          |
-| domain                    | cbba.trufi.app            | The domain name of the city. If you use the mode `virtual domains` then be creative as this variable will then not be of use but needs to be available |
+| city                      | *same as for 'mandant'*        | (only supported for backward compactibility)                          |
+| mandant                      | 'Bolivia-Cochabamba' or'ITHouse'        | the name of the mandant in ASCI without special chars and without underscores (required)                          |
+| domain                    | cbba.trufi.app            | The domain name of the mandant. If you use the mode `virtual domains` then be creative as this variable will then not be of use but needs to be available |
 | *... (depends on module)* | *... (depends on module)* | *... (depends on module)*                                    |
 
-Create a new one based on the already existing config files to get an idea of their internal structure. Do that for each city you want to host backend services for. *You may want to remove the other configuration city files which are meant to provide examples.* If there is only one city configuration file ending with `.env` left then you can use the commands without the `<name of city>` argument e.g. `add_module tileserver` or `server up tileserver`. But as soon as there are more than one then you need to specify `<name of city>` of course.
+Create a new one based on the already existing config files to get an idea of their internal structure. Do that for each mandant you want to host backend services for. *You may want to remove the other configuration mandant files which are meant to provide examples.* If there is only one mandant configuration file ending with `.env` left then you can use the commands without the `<name of mandant>` argument e.g. `add_module tileserver` or `server up tileserver`. But as soon as there are more than one then you need to specify `<name of mandant>` of course.
 
 ### Global
 
-For other but important parameters which apply globally to all cities, we use a global configuration stored in file `./data/instance.conf`.
+For other but important parameters which apply globally to all mandants, we use a global configuration stored in file `./data/instance.conf`.
 
 | Variable | Example        | Description                                                  |
 | -------- | -------------- | ------------------------------------------------------------ |
-| ssl      | yes            | Tells `add_module` to configure SSL for the particular city. Valid values are `yes` or `no`. |
-| curmode  | virtual domain | The nginx domain structure to use. Accepted values are `virtual domain` (all cities run under the same domain) and `real domains` (each city has its own domain). Tells `add_module` how to configure nginx. |
+| ssl      | yes            | Tells `add_module` to configure SSL for the particular mandant. Valid values are `yes` or `no`. |
+| curmode  | virtual domain | The nginx domain structure to use. Accepted values are `virtual domain` (all mandants run under the same domain) and `real domains` (each mandant has its own domain). Tells `add_module` how to configure nginx. |
 | intraweb | yes            | Toggles the Intraweb feature on or off. Valid values are `yes` or `no`. <br /><br/>The script `add_module` will read this setting to know wherever to create the configuration necessary for Intraweb.<br />[Documentation of Intraweb](./docs/intraweb.md) |
 
  
@@ -58,7 +59,7 @@ Read more about [including external modules](./docs/extend.md#external_modules)
 ### Initiate your own instance of this
 
 1. Clone of course
-2. Rename the cloned repo `trufi-server-multi` differently as you want to have a custom name describing what your clone of this structure is for. You might want to rename the folder to `website-services` to host websites and web platforms such as dashboards for your customers. Or `city-services` for services related to city governance.
+2. Rename the cloned repo `trufi-server-multi` differently as you want to have a custom name describing what your clone of this structure is for. You might want to rename the folder to `website-services` to host websites and web platforms such as dashboards for your customers. Or `mandant-services` for services related to mandant governance.
 3. Clone a `modules` repository into this one e.g. https://github.com/trufi-association/trufi-website-modules or https://github.com/trufi-association/trufi-server-modules
 4. Execute `./init` and answer the setup questions
 
@@ -68,15 +69,15 @@ Read more about [including external modules](./docs/extend.md#external_modules)
 
 Definitely you used our tools in the [Trufi Server Resources](https://github.com/trufi-server-resources) you generate all the data you need for the backend tools here. Excellent because the structure there is to 100% compactible to this one and you don't need to figure out how to copy/move things over to here. See also the concept of [Resource Binding](https://github.com/trufi-association/trufi-server-resources#main-output-folder) we introduced. But anyway now come the smart people to play and you can be one of them.
 
-To copy over the files to their appropriate location here you just need to do the following: In your very own copy of [Trufi Server Resources](https://github.com/trufi-server-resources) go to its `data` directory and copy the content of the `<Country-City>` which holds your data. Paste them into the `modules` folder of this one and accept the merge with already existing data. Or to put it into the words/world of sysadmins just execute
+To copy over the files to their appropriate location here you just need to do the following: In your very own copy of [Trufi Server Resources](https://github.com/trufi-server-resources) go to its `data` directory and copy the content of the `<Country-Mandant>` which holds your data. Paste them into the `modules` folder of this one and accept the merge with already existing data. Or to put it into the words/world of sysadmins just execute
 
 ```bash
-cp -a ./trufi-server-resources/data/<Country-City>/* ./trufi-server-cities/modules --verbose
+cp -a ./trufi-server-resources/data/<Country-Mandant>/* ./trufi-server-mandants/modules --verbose
 ```
 
-Then rename all `data` folders inside the modules to `data_Country-City` e.g. `data_Germany-Hamburg`.
+Then rename all `data` folders inside the modules to `data_Country-Mandant` e.g. `data_Germany-Hamburg`.
 
-**TO DO:** Introduce `autosetup` to ease setting up a new city or update an existing one (script needs to be developed still)
+**TO DO:** Introduce `autosetup` to ease setting up a new mandant or update an existing one (script needs to be developed still)
 
 ### Encrypting connections to this backend
 
@@ -98,7 +99,7 @@ This is the setup on our own server and we provide a [working example of our ngi
 
 This requires the `ssl` variable in `./data/instance.conf` set to `no` before any execution of `add_module`. If you accidentally run `add_module` before doing that then use `remove_module` to remove the configuration files as `remove_module` is the opposite of `add_module`.
 
-This is useful if you are already providing other services in need of HTTPS to your customers e.g. you are already hosting a website. Now you want to have your server provide different services for different cities. Also this is your only option if your server is behind a firewall just letting port 80 and 443 pass through. Go setup nginx on your host which then does all the HTTPS stuff and takes care to redirect to the appropriate sub webservers based on specified parameters you have defined. This allows you to use this structure without any HTTPS configuration ( `ssl="no"` ) because encryption is handled by your HTTPS server on your host.
+This is useful if you are already providing other services in need of HTTPS to your customers e.g. you are already hosting a website. Now you want to have your server provide different services for different mandants. Also this is your only option if your server is behind a firewall just letting port 80 and 443 pass through. Go setup nginx on your host which then does all the HTTPS stuff and takes care to redirect to the appropriate sub webservers based on specified parameters you have defined. This allows you to use this structure without any HTTPS configuration ( `ssl="no"` ) because encryption is handled by your HTTPS server on your host.
 
 See an [example nginx configuration only used for Let's Encrypt](./docs/commands/certify.md#example_nginx_configuration)
 
@@ -110,7 +111,7 @@ We created a highly flexible script to ease HTTPS certificate creation and it ac
 - allows to specify a `<webroot>` which allows you to specify the path to the folder where your web server on the host or in another docker container running on port `80` serves the `./well-known` from.
 - creation of a systemd timer to automatically renew the certificate
 
-**Usage:** `certify <Country-City <webroot>`
+**Usage:** `certify <Country-Mandant <webroot>`
 
 **Example:** `certify Germany-Hamburg /srv/trufi/nginx/www`
 

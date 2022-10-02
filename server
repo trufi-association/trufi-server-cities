@@ -1,10 +1,10 @@
 #!/bin/bash
+source ./lib/env
 source ./lib/singlenv
 source ./lib/colorful
-source ./lib/env
 source ./lib/utils
 source "lib/plugin"
-# server [city] action [module] [actionargs]
+# server [mandant] action [module] [actionargs]
 
 # Run added modules (this will be automatically normalized to 'up --detach' before passing to docker-compose)
 # ---------------------
@@ -40,44 +40,42 @@ source "lib/plugin"
 projectname=`basename "$PWD"`
 args=( $@ )
 
-declare -A citiesPerModule
+declare -A mandantsPerModule
 
-## if the first argument is a valid city configuration file and provided in the form 'Country-City' or 'Country-City.env'
-## e.g.: server [city] action [module] [actionargs]
+## if the first argument is a valid mandant configuration file and provided in the form 'name of mandant' or 'name of mandant.env'
+## e.g.: server [mandant] action [module] [actionargs]
 ##               ....
-cityScope="all"
 envfile="${args[0]/'.env'/''}.env"
-if [ -f "./config/$envfile" ]; then # export the variables in the city configuration file
-	export $(cat ./config/$envfile | xargs)
-	cityScope="city"
+if [ -f "./config/$envfile" ]; then # export the variables in the mandant configuration file
+	source ./config/$envfile
 	blueecho "performing some checks & normalizations ..."
 	source ./lib/validation # will re-init variable 'args' and will normalize it with self-provided function 'removeFirstElemInArgs'
-	curCity="$city" # only to provide analog behaviour to the comming 'curAction', 'curModule' and 'curActionArgs' variables but not needed for this architecture to work properly except for plugins using 'curCity'
+	curMandant="$mandant" # only to provide analog behaviour to the comming 'curAction', 'curModule' and 'curActionArgs' variables but not needed for this architecture to work properly except for plugins using 'curMandant'
 fi
 
 if [ ${#args[@]} -eq 0 ]; then
 	redecho "Error: Not enough arguments!"
-	echo "USAGE: ./server [city] action [module] [actionargs]"
+	echo "USAGE: ./server [mandant] action [module] [actionargs]"
 	echo ""
-	echo "[city]         Optional, name of city e.g. Bolivia-Cochabamba"
+	echo "[mandant]         Optional, name of the mandant e.g. 'Bolivia-Cochabamba' or 'ITHouse'"
 	echo "action         Required, name of the action to execute/perform e.g. 'start'"
 	echo "[module]       Optional, name of the module to execute/perform action against e.g. 'tileserver'"
 	echo "[actionargs]   Optional, additional arguments for the action to execute/perform e.g. '--build --detach' for action 'up'"
 	exit 1
 fi
 
-## e.g.: server [city] action [module] [actionargs]
+## e.g.: server [mandant] action [module] [actionargs]
 ##                     ......
 curAction="${args[0]}"
 action="$curAction"
 removeFirstElemInArgs
-## e.g.: server [city] action [module] [actionargs]
+## e.g.: server [mandant] action [module] [actionargs]
 ##                            ........
 #if [ -n "${args[0]}" ] && [ -d "./modules/${args[0]}" ]; then
 curModule="${args[0]}"
 removeFirstElemInArgs
 #fi
-## e.g.: server [city] action [module] [actionargs]
+## e.g.: server [mandant] action [module] [actionargs]
 ##                                     ............
 curActionArgs="${args[@]}"
 
@@ -85,25 +83,25 @@ curActionArgs="${args[@]}"
 
 ## batch execution (based on what an iterator has found previously)
 performExecution() {
-	if [ -z "${!citiesPerModule[@]}" ]; then # a message for developers
+	if [ -z "${!mandantsPerModule[@]}" ]; then # a message for developers
 		redecho "Trying to call 'performExecution' without running 'performIteration \"noexecute\"' before leads to this error message!"
 		echo "crying ..."
 		return
 	
 	fi
-	for module in "${!citiesPerModule[@]}"; do
+	for module in "${!mandantsPerModule[@]}"; do
 		orangeecho "performing desired action '$curAction' on module '$module' ..."
 		if [ -d "$module" ]; then
 			local oldpwd="$PWD"
 			cd "$module"
 
-			local cities=( ${citiesPerModule[$module]} )
-			for city in "${cities[@]}"; do
-				orangeecho "  - in city $city ..."
+			local mandants=( ${mandantsPerModule[$module]} )
+			for mandant in "${mandants[@]}"; do
+				orangeecho "  - in mandant $mandant ..."
 				if [ -n "$1" ]; then # assume a function when given
-					"$@" "$module" "$city";
+					"$@" "$module" "$mandant";
 				else
-					sudo docker compose -p "${projectname}" -f "$city.yml" $curAction $curActionArgs
+					sudo $DOCKER_COMPOSE -p "${projectname}" -f "$mandant.yml" $curAction $curActionArgs
 				fi
 			done
 
@@ -113,30 +111,30 @@ performExecution() {
 }
 
 ## iterators for modules
-### perform on all cities of a module
-iterateThroughAllCitiesOfModule() {
+### perform on all mandants of a module
+iterateThroughAllMandantsOfModule() {
 	cd "modules/$1"
-	addedCities=""
+	addedMandants=""
 	for composeFile in `ls | grep .yml`; do
 		if ! [ "$composeFile" = "docker-compose.yml" ] && [[ "$composeFile" == *.yml ]] && [ -f "$composeFile" ]; then
-			addedCities+="${composeFile/'.yml'/''} "
+			addedMandants+="${composeFile/'.yml'/''} "
 		fi
 	done
-	if [ -n "$addedCities" ]; then
-		citiesPerModule["modules/$1"]=$addedCities
+	if [ -n "$addedMandants" ]; then
+		mandantsPerModule["modules/$1"]=$addedMandants
 	fi
 	cd "../../"
 }
 
-### perform on all modules in a city
-iterateThroughAllModulesInCity() {
+### perform on all modules in a mandant
+iterateThroughAllModulesOfMandant() {
 	cd modules
 	for module in `ls -p ./ | grep /`; do
 		module=${module/\//""}
 		cd "$module"
 		
 		if [ -f "$1.yml" ]; then
-			citiesPerModule["modules/$module"]="$1"
+			mandantsPerModule["modules/$module"]="$1"
 		fi
 		
 		cd ../
@@ -144,29 +142,29 @@ iterateThroughAllModulesInCity() {
 	cd ../
 }
 
-### perform on all modules in all cities
+### perform on all modules in all mandants
 iterateThroughEverything() {
 	for module in `ls -p modules | grep /`; do
 		local module=${module/\//""}
-		iterateThroughAllCitiesOfModule $module $1
+		iterateThroughAllMandantsOfModule $module $1
 	done
 }
 
 ### determine iteration strategy to use and call it
 performIteration() {
 	local error=""
-	if [ "$cityScope" = "all" ] && [ -z "$curModule" ]; then # no city and no module have been specified (perform on all modules in all cities)
+	if [ -z "$curMandant" ] && [ -z "$curModule" ]; then # no mandant and no module have been specified (perform on all modules in all mandants)
 		# server action
-		iterateThroughEverything $1 # perform on all modules in all cities
-	elif [ "$cityScope" = "all" ] && [ -n "$curModule" ]; then # no city but a module have been specified
+		iterateThroughEverything $1 # perform on all modules in all mandants
+	elif [ -z "$curMandant" ] && [ -n "$curModule" ]; then # no mandant but a module have been specified
 		# server action module [actionargs]
-		iterateThroughAllCitiesOfModule $curModule $1 # perform on all cities of a module
-	elif [ "$cityScope" = "city" ] && [ -z "$curModule" ]; then # a city but no module have been specified
-		# server city action
-		iterateThroughAllModulesInCity $city $1 # perform on all modules in current city
-	elif [ "$cityScope" = "city" ] && [ -n "$curModule" ]; then # a city and a module have been specified
-		# server city action module [actionargs]
-		citiesPerModule["modules/$curModule"]="$city"
+		iterateThroughAllMandantsOfModule $curModule $1 # perform on all mandants of a module
+	elif [ -n "$curMandant" ] && [ -z "$curModule" ]; then # a mandant but no module have been specified
+		# server mandant action
+		iterateThroughAllModulesOfMandant $mandant $1 # perform on all modules in current mandant
+	elif [ -n "$curMandant" ] && [ -n "$curModule" ]; then # a mandant and a module have been specified
+		# server mandant action module [actionargs]
+		mandantsPerModule["modules/$curModule"]="$mandant"
 	else # if this else gets called then it means something is wrong with the code
 		redecho "Error: Action '$curAction' couldn't be run as an iteration strategy to perform couldn't be found!"
 		local error="ITERATIONSTRATEGYNOTFOUND"
@@ -182,7 +180,7 @@ performIteration() {
 ## attention please prompt
 attentionPrompt() {
 	local reason="$1"
-	local cityrelatedtext=""
+	local mandantrelatedtext=""
 	if [ -z "$reason" ]; then
 		reason="(no reason provided)"
 	fi
@@ -190,17 +188,18 @@ attentionPrompt() {
 	echo -e "The action '$curAction' asks for\033[1;m your approval\033[0;m before continuing! There must be a\033[0;31m dangerous situation\033[0;m it wants you to be aware of"
 	echo -e "Reason: \033[0;34m${reason}\033[0;m"
 	echo -e "\033[1;37mExecution details:\033[0;m"
-	echo -e "Scope: \033[0;34m${cityScope}\033[0;m"
-	if [ "$cityScope" = "city" ]; then
-		echo -e "Affected city: \033[0;34m${city}\033[0;m"
-		local cityrelatedtext=" in city '$city'"
+	if [ -n "$curMandant" ]; then
+		echo -e "Affected mandant: \033[0;34m${mandant}\033[0;m"
+		echo -e "Scope: \033[0;34mmandant\033[0;m"
+		local mandantrelatedtext=" ofn mandant '$mandant'"
 	else
-		echo -e "Affected city: \033[0;34m(action will be applied to all cities when approving)\033[0;m"
+		echo -e "Affected mandant: \033[0;34m(action will be applied to all mandants when approving)\033[0;m"
+		echo -e "Scope: \033[0;34mall\033[0;m"
 	fi
 	if [ -n "$curModule" ]; then
 		echo -e "Affected module: \033[0;34m${curModule}\033[0;m"
 	else
-		echo -e "Affected module: \033[0;34m(action will be applied to all modules${cityrelatedtext} when approving)\033[0;m"
+		echo -e "Affected module: \033[0;34m(action will be applied to all modules${mandantrelatedtext} when approving)\033[0;m"
 	fi
 	echo -e "Action: \033[0;34m${curAction}\033[0;m"
 	echo -e "Action arguments: \033[0;34m${curActionArgs}\033[0;m"
@@ -251,25 +250,25 @@ runningServices=`sudo docker container ls | grep "${projectname}" | wc -l` # cou
 allServiceContainers=`sudo docker container ls --all | grep "${projectname}" | wc -l` # count all services including the chief ones
 runningChiefs=`sudo docker container ls | grep "${projectname}_chief-" | wc -l` # count running chiefs
 allChiefContainers=`sudo docker container ls --all | grep "${projectname}_chief-" | wc -l`
-allChiefsAvailable=`sudo docker compose -f docker-compose.yml $chief_plugins config --services | wc -l` # count all chiefs
+allChiefsAvailable=`sudo $DOCKER_COMPOSE -f docker-compose.yml $chief_plugins config --services | wc -l` # count all chiefs
 ## if no service is running (except the chiefs)
 if [ 0 -eq $((runningServices-runningChiefs)) ]; then
 	### check if they have been removed completely (except the chiefs)
 	if [ 0 -eq $((allServiceContainers-runningChiefs)) ]; then # also stop and remove all chiefs
 		orangeecho "turning down chiefs as there are no docker containers left ..."
-		sudo docker compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins down # so we can even turn down and remove the chief ones
+		sudo $DOCKER_COMPOSE -p "${projectname}" -f "docker-compose.yml" $chief_plugins down # so we can even turn down and remove the chief ones
 	else ### not all services have been removed but they have been stopped (chiefs not counted in)
 		orangeecho "stopping chiefs as there are only stopped containers ..."
-		sudo docker compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins stop # so we just stop the chiefs
+		sudo $DOCKER_COMPOSE -p "${projectname}" -f "docker-compose.yml" $chief_plugins stop # so we just stop the chiefs
 	fi
 else ## if services are running (chiefs not counted in)
 	### if amount of chiefs having containers is greater than the amount of running ones
 	if [ $allChiefContainers -gt $runningChiefs ]; then
 		orangeecho "start chiefs as there are running docker containers ..."
-		sudo docker compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins start # start them all
+		sudo $DOCKER_COMPOSE -p "${projectname}" -f "docker-compose.yml" $chief_plugins start # start them all
 	### if amount of chiefs (including ones without a container) is greater than the amount of existing chief containers
 	elif [ $allChiefsAvailable -gt $allChiefContainers ]; then
 		orangeecho "turning up chiefs as there are running docker containers ..."
-		sudo docker compose -p "${projectname}" -f "docker-compose.yml" $chief_plugins up --build --detach # wire up the missing chiefs
+		sudo $DOCKER_COMPOSE -p "${projectname}" -f "docker-compose.yml" $chief_plugins up --build --detach # wire up the missing chiefs
 	fi
 fi

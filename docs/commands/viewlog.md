@@ -6,13 +6,13 @@ It works only if you run `./switchLogging on` beforehand to configure logging in
 
 ## Syntax
 
-City scope:
+Mandant scope:
 
 ```bash
-./viewlog [<Country-City>] <modulename> <servicename> [<moreargs>]
+./viewlog [<name of mandant>] <modulename> <servicename> [<moreargs>]
 ```
 
-to view logs of a service in a module of a city.
+to view logs of a service in a module of a mandant.
 
 Chief scope:
 
@@ -26,13 +26,13 @@ to view logs of a service in the main `docker-compose.yml`.
 
 ## Usage
 
-City scope:
+Mandant scope:
 
 ```bash
 ./viewlog Germany-Hamburg tileserver tileserver
 ```
 
-to view logs of service `tileserver` in module `tileserver` in city `Germany-Hamburg`.
+to view logs of service `tileserver` in module `tileserver` in mandant `Germany-Hamburg`.
 
 Chief scope:
 

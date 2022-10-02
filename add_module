@@ -2,35 +2,35 @@
 
 projectname=`basename "$PWD"`
 
+source ./lib/env
 source ./lib/singlenv
 source ./lib/colorful
-source ./lib/env
 
 blueecho "1. perform some checks & normalizations ..."
 source ./lib/validation
 
 compileCompose() {
-	blueecho "Add module '$modulename' to city '$city'"
+	blueecho "Add module '$modulename' to mandant '$mandant'"
 
 	if ! [ -f "$moduleDir/docker-compose.yml" ]; then
 		echo "   doing this makes no sense as the template file '$moduleDir/docker-compose.yml' does not exist!"
 		return
 	fi
 
-	# 1. Generate a docker-compose for the city (if not already existing)
-	ymlFile="$moduleDir/$city.yml"
+	# 1. Generate a docker-compose for the mandant (if not already existing)
+	ymlFile="$moduleDir/$mandant.yml"
 	ymlFileInactive="$ymlFile.inactive"
 
 	if ! [ -f "$ymlFileInactive" ] && ! [ -f "$ymlFile" ]; then
 		orangeecho "   building & adding in directory '$moduleDir' ) ..."
-		(export `cat ./$cityfile | xargs`; export projectname="$projectname" ; export city_normalize="${city,,}"
+		(source ./$mandantFile ; export projectname="$projectname" ; export city_normalize="${mandant,,}" ; export mandant_normalize="${mandant,,}" 
 		envsubst < $moduleDir/docker-compose.yml > "$ymlFile" )
 		if ! [ -f "$ymlFile" ]; then
 			redecho "     Creating & adding operation failed! Do I have write access to '$moduleDir'?">&2
 			exit 1
 		fi
 		if [ -d "$moduleDir/data_template" ]; then
-			cp -R "$moduleDir/data_template" "$moduleDir/data_$city"
+			cp -R "$moduleDir/data_template" "$moduleDir/data_$mandant"
 		fi
 	elif [ -f "$ymlFileInactive" ]; then
 		orangeecho "   adding ..."
@@ -47,66 +47,67 @@ compileCompose() {
 interwebConfiguration() {
 	# 2. Prepare interweb configuration
 	blueecho "Add interweb nginx configuration"
-	orangeecho "   adding nginx configuration for '$modulename' in city '$city' ..."
+	orangeecho "   adding nginx configuration for '$modulename' to mandant '$mandant' ..."
 	
-	# This folder to be created somewhere under './data' is necessary to be able to store all nginx reverse proxy configurations for '$city' e.g. 'Germany-Hamburg'
-	nginxcityfolder="./data/nginx/interweb/$city" # e.g. './data/nginx/interweb/Germany-Hamburg'
-	# This file to be created will contain the altered nginx server configuration for '$city' e.g. 'Germany-Hamburg'
-	nginxcityconf="$nginxcityfolder.conf" # e.g. './data/nginx/interweb/Germany-Hamburg.conf'
+	# This folder to be created somewhere under './data' is necessary to be able to store all nginx reverse proxy configurations for '$mandant' e.g. 'Germany-Hamburg'
+	nginxMandantFolder="./data/nginx/interweb/$mandant" # e.g. './data/nginx/interweb/Germany-Hamburg'
+	# This file to be created will contain the altered nginx server configuration for '$mandant' e.g. 'Germany-Hamburg'
+	nginxMandantConf="$nginxMandantFolder.conf" # e.g. './data/nginx/interweb/Germany-Hamburg.conf'
 	# This file to be created will contain the altered nginx reverse proxy configuration for the module '$modulename' e.g. 'tileserver' 
-	nginxcitymoduleconf="$nginxcityfolder/$modulename.conf" # e.g. './data/nginx/interweb/Germany-Hamburg/tileserver.conf'
+	nginxMandantModuleConf="$nginxMandantFolder/$modulename.conf" # e.g. './data/nginx/interweb/Germany-Hamburg/tileserver.conf'
 	# This file ensures that traffic redirection to that module works
-	modulenginxconf="$moduleDir/nginx.conf" # e.g. './modules/tileserver/nginx.conf'
+	moduleNginxConf="$moduleDir/nginx.conf" # e.g. './modules/tileserver/nginx.conf'
 
 	# if a nginx reverse proxy configuration exists for this module
-	if [ -f "$modulenginxconf" ]; then # read it into memory (to be able to alter it later)
-		modulenginxconf_content=`cat "$modulenginxconf"`
-		modulenginxconf_content=`
-export \`cat $cityfile | xargs\`
+	if [ -f "$moduleNginxConf" ]; then # read it into memory (to be able to alter it later)
+		moduleNginxConfContent=`cat "$moduleNginxConf"`
+		moduleNginxConfContent=`
+source ./$mandantFile
 export projectname="$projectname"
 export modulename="$modulename"
-export city_normalize="${city,,}"
-echo "$modulenginxconf_content" | envsubst`
+export city_normalize="${mandant,,}"
+export mandant_normalize="${mandant,,}"
+echo "$moduleNginxConfContent" | envsubst`
 	else
 		# if no module nginx reverse configuration exists then abbort
 		return
 	fi
 
 	# If that folder does not exist
-	if ! [ -d "$nginxcityfolder" ]; then # create it
-		orangeecho "     creating nginx server configuration folder for city '$city' ..."
-		mkdir "$nginxcityfolder"
+	if ! [ -d "$nginxMandantFolder" ]; then # create it
+		orangeecho "     creating nginx server configuration folder for mandant '$mandant' ..."
+		mkdir "$nginxMandantFolder"
 	fi
 	
 	# 3. Generating nginx server configuration
-	orangeecho "     completing nginx server configuration for city '$city' ..."
-	# if in real domains mode and if the file '$nginxcityconf' does not exist already
-	if [ "$curmode" = "$MODE_REALDOMAINS" ] && ! [ -f "$nginxcityconf" ]; then # take the template file at $nginxcityconf_template_interweb and make modifications
-		# - to include all *.conf files in '$nginxcityfolder'
-		# - and to just be applied for the domain assigned to '$city'
-		sed "s/# modules/# real domain include location blocks for city '$city'\ninclude \/etc\/nginx\/interweb\/$city\/\*.conf\;/" "$nginxcityconf_template_interweb" | sed "s/example.org/$domain/g" > "$nginxcityconf"
-	elif ! [ -f "$nginxcityconf" ]; then # or if in virtual domain mode then just create the file '$nginxcityconf' containing the include statement to include all *.conf files in '$nginxcityfolder'
-		echo "include /etc/nginx/interweb/$city/*.conf;" > "$nginxcityconf"
+	orangeecho "     completing nginx server configuration for mandant '$mandant' ..."
+	# if in real domains mode and if the file '$nginxMandantConf' does not exist already
+	if [ "$curmode" = "$MODE_REALDOMAINS" ] && ! [ -f "$nginxMandantConf" ]; then # take the template file at $nginxMandantConfTemplateInterweb and make modifications
+		# - to include all *.conf files in '$nginxMandantFolder'
+		# - and to just be applied for the domain assigned to '$mandant'
+		sed "s/# modules/# real domain include location blocks for mandant '$mandant'\ninclude \/etc\/nginx\/interweb\/$mandant\/\*.conf\;/" "$nginxMandantConfTemplateInterweb" | sed "s/example.org/$domain/g" > "$nginxMandantConf"
+	elif ! [ -f "$nginxMandantConf" ]; then # or if in virtual domain mode then just create the file '$nginxMandantConf' containing the include statement to include all *.conf files in '$nginxMandantFolder'
+		echo "include /etc/nginx/interweb/$mandant/*.conf;" > "$nginxMandantConf"
 	else
 		greenecho "       already done. No need to do it again :)"
 	fi
 
 	# 4. Generating nginx module configuration
-	orangeecho "     copying & altering nginx module configuration for module '$modulename' to nginx server configuration for city '$city' ..."
-	if ! [ -f "$nginxcitymoduleconf" ]; then
+	orangeecho "     copying & altering nginx module configuration for module '$modulename' to nginx server configuration for mandant '$mandant' ..."
+	if ! [ -f "$nginxMandantModuleConf" ]; then
 		# search for pattern 'http://otp:' or 'http://otp;' or 'http://otp/'
-		# and replace it with 'http://otp-$city:' or 'http://otp-$city;' or 'http://otp-$city/'
-		# e.g. 'http://otp-germany-hamburg:' or 'http://otp-germany-hamburg;' or 'http://otp-germany-hamburg/' (lower case because of '${city,,}')
-		modulenginxconf_content=`echo "import re
-txt = \"\"\"$modulenginxconf_content\"\"\"
-print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://${modulename}-\\\\\\1-${city,,}\\\\\\2\", txt, re.S))
+		# and replace it with 'http://otp-$mandant:' or 'http://otp-$mandant;' or 'http://otp-$mandant/'
+		# e.g. 'http://otp-germany-hamburg:' or 'http://otp-germany-hamburg;' or 'http://otp-germany-hamburg/' (lower case because of '${mandant,,}')
+		moduleNginxConfContent=`echo "import re
+txt = \"\"\"$moduleNginxConfContent\"\"\"
+print(re.sub(\"http\:/\/(.*?)(:|;|\/)\",\"http://${modulename}-\\\\\\1-${mandant,,}\\\\\\2\", txt, re.S))
 " | python3`
 		# if in virtual domains mode
 		if [ "$curmode" = "$MODE_VIRTUALDOMAINS" ]; then # do the following additional modifications to all location blocks to
 			# change their urls e.g. from '/tileserver' to '/Germany-Hamburg/tileserver' (no lower case here)
-			modulenginxconf_content=`echo "$modulenginxconf_content" | sed -E "s/location \/(.+?)/location \/$city\/\1/g" | sed -E "s/return (.+?) \/(.*?)/return \1 \/$city\/\2/g"`
+			moduleNginxConfContent=`echo "$moduleNginxConfContent" | sed -E "s/location \/(.+?)/location \/$mandant\/\1/g" | sed -E "s/return (.+?) \/(.*?)/return \1 \/$city\/\2/g"`
 		fi
-		echo "$modulenginxconf_content" > "$nginxcitymoduleconf"
+		echo "$moduleNginxConfContent" > "$nginxMandantModuleConf"
 	else
 		greenecho "       already generated. No need to do it again :)"
 	fi
@@ -132,38 +133,38 @@ intrawebConfiguration() {
 			return
 		fi
 
-		orangeecho "   adding nginx configuration for '$modulename' in city '$city' ..."
+		orangeecho "   adding nginx configuration for '$modulename' for mandant '$mandant' ..."
 		
-		nginxcityfolder="./data/nginx/intraweb/$city"
-		nginxcityconf="$nginxcityfolder.conf"
+		nginxMandantFolder="./data/nginx/intraweb/$mandant"
+		nginxMandantConf="$nginxMandantFolder.conf"
 		
-		orangeecho "     creating nginx server configuration folder for city '$city' ..."
-		if ! [ -d "$nginxcityfolder" ]; then
-			mkdir "$nginxcityfolder"
+		orangeecho "     creating nginx server configuration folder for mandant '$mandant' ..."
+		if ! [ -d "$nginxMandantFolder" ]; then
+			mkdir "$nginxMandantFolder"
 		fi
 		
-		orangeecho "     completing nginx configuration for city '$city' ..."
-		if ! [ -f "$nginxcityconf" ]; then
-			echo "include /etc/nginx/intraweb/$city/*.conf ;" > "$nginxcityconf"
+		orangeecho "     completing nginx configuration for mandant '$mandant' ..."
+		if ! [ -f "$nginxMandantConf" ]; then
+			echo "include /etc/nginx/intraweb/$mandant/*.conf ;" > "$nginxMandantConf"
 		else
 			greenecho "     not necessary as already completed :)"
 		fi
 		
-		orangeecho "     adding intraweb server for module '$modulename' in city '$city'"
+		orangeecho "     adding intraweb server for module '$modulename' for mandant '$mandant'"
 		cd modules/$modulename
-		allServices=`sudo docker compose -f "${city}.yml" config --services`
+		allServices=`sudo $DOCKER_COMPOSE -f "${mandant}.yml" config --services`
 		allServices=( $allServices )
 		cd ../../
-		# iterate through names of all services of that city in the module
+		# iterate through names of all services of that mandant in the module
 		for servicename in "${allServices[@]}"; do
 			orangeecho "       - $servicename ..."
-			nginxcitymoduleconf="$nginxcityfolder/$servicename.conf"
-			if ! [ -f "$nginxcitymoduleconf" ]; then
-				# take content from template in file '$nginxcityconf_template_intraweb' and modify it to
+			nginxMandantModuleConf="$nginxMandantFolder/$servicename.conf"
+			if ! [ -f "$nginxMandantModuleConf" ]; then
+				# take content from template in file 'nginxDockerServiceConfTemplateInterweb' and modify it to
 				# - be just applied to a specified autogenerated intraweb domain
-				# - and to replace all occurrence of 'modulename-city' with the name of the container e.g. to 'tileserver-tileserver-germany-hamburg'
-				#                                                                                      Syntax: <modulename>-<servicename>-<city>
-				sed -E "s/localhost/$servicename.localhost/" "$nginxcityconf_template_intraweb" | sed "s/modulename-city/$servicename/" > "$nginxcitymoduleconf"
+				# - and to replace all occurrence of 'modulename-mandant' with the name of the container e.g. to 'tileserver-tileserver-germany-hamburg'
+				#                                                                                      Syntax: <modulename>-<servicename>-<mandant>
+				sed -E "s/localhost/$servicename.localhost/" "$nginxDockerServiceConfTemplateInterweb" | sed "s/modulename-city/$servicename/" > "$nginxMandantModuleConf"
 			else
 				greenecho "         not necessary as already existing  :)"
 			fi
@@ -182,10 +183,10 @@ addModule() {
 	source "lib/plugin"
 	invokeAllPluginsOf "add_module"
 
-	blueecho "Wiring up module '$modulename' for city '$city'"
-	./server "${city}" up "$modulename"
+	blueecho "Wiring up module '$modulename' for mandant '$mandant'"
+	./server "${mandant}" up "$modulename"
 	
-	greenecho "Added trufi module '$modulename' to city '$city'!"
+	greenecho "Added trufi module '$modulename' to mandant '$mandant'!"
 }
 
 moduleNotFound=""
@@ -203,7 +204,7 @@ for module in "${args[@]}"; do
 	addModule "$module"
 done
 if ! [ -z "$moduleNotFound" ]; then
-	redecho "Error: You specified an invalid name of a module to add to city '$city'">&2
+	redecho "Error: You specified an invalid name of a module to add to mandant '$mandant'">&2
 	echo "A list of modules available:"
 	ls -p ./modules | grep -v /
 	exit 1

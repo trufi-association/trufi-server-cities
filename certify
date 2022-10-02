@@ -1,7 +1,7 @@
 #!/bin/bash
 # ------------------------
 # Invoke script as following:
-# ./certify <Country-City> <webroot>
+# ./certify <name of mandant> <webroot>
 # e.g.:
 # ./certify Germany-Hamburg /srv/trufi/nginx/www
 # ------------------------

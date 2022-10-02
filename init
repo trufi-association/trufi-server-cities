@@ -95,7 +95,7 @@ echo "---------------------------------------------------"
 echo "You can operate the backend in two different modes!"
 echo "---------------------------------------------------"
 echo "Mode '$MODE_VIRTUALDOMAINS':"
-echo "  - allows you to operate all backends for all different cities under **one** subdomain e.g. 'app.example.com"
+echo "  - allows you to operate all backends for all different cities/regions/mandants under **one** subdomain e.g. 'app.example.com"
 echo "  - A script internally converts uris like 'http(s)://app.example.com/dehh/tileserver' to 'http://tileserver-dehh' so it tries to guess the name of the docker container to use based on the uri given by the client."
 echo "  - limiations:"
 echo "    - are not free in custom nginx configurations to use e.g. you cannot set additional headers"
@@ -106,7 +106,7 @@ echo "    - Normally using subdomains DON'T cause any extra costs and also using
 echo "    - If you want to run extensions but only have them accessible on localhost then don't use this mode!"
 echo
 echo "MODE '$MODE_REALDOMAINS' (recommended and selected as default):"
-echo "  - allows you to use different subdomains for each city/region you operate extension instances for e.g. 'dehh.example.com' for Hamburg in Germany and 'brrecife.example.com' for Recife in Brazil."
+echo "  - allows you to use different subdomains for each city/region/mandant you operate extension instances for e.g. 'dehh.example.com' for Hamburg in Germany and 'brrecife.example.com' for Recife in Brazil."
 echo "  - STANDARD"
 echo "    - this is aligned to the idea of having subdomains"
 echo "    - we use this mode on our own backend server"
@@ -153,11 +153,11 @@ if ! [ -f "$dest" ] && [ "$CURMODE" = "$MODE_VIRTUALDOMAINS" ]; then
 	domain="$decision"
 	
 	orangeecho "     adding virtual server ..."
-	sed "s/# modules/# modules of all cities all using this single virtual server configuration\ninclude \/etc\/nginx\/interweb\/*\/\*.conf\;/" "$nginxcityconf_template_interweb" | sed "s/example.org/$domain/g" > "$dest"
+	sed "s/# modules/# modules of all mandants using this single virtual server configuration\ninclude \/etc\/nginx\/interweb\/*\/\*.conf\;/" "$nginxMandantConfTemplateInterweb" | sed "s/example.org/$domain/g" > "$dest"
 	mkdir -p "./data/logs/nginx/$domain"
 
 elif [ "$CURMODE" = "$MODE_REALDOMAINS" ]; then
-	greenecho "     doing something with nginx configurations before adding a city is not necessary. Skipping this step!"
+	greenecho "     doing something with nginx configurations before adding a mandant is not necessary. Skipping this step!"
 fi
 
 #orangeecho "   generating 4096bit dhparam ..."
@@ -172,5 +172,5 @@ echo "SSL enabled       : $ssl"
 echo "Mode              : $CURMODE"
 echo "Domain            : $domain"
 echo "Intraweb activated: $intraweb"
-echo "Ability to host services for multiple cities"
+echo "Ability to host services for multiple cities/regions/mandants"
 echo

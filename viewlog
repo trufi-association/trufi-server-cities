@@ -1,6 +1,6 @@
 #!/bin/bash
 # makes sense for production only
-# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
+# ./viewlog <mandants' name> <modulename> <servicename> [<moreargs>]
 
 args=( $@ )
 
@@ -9,18 +9,18 @@ source ./lib/colorful
 source ./lib/utils
 projectname=`basename "$PWD"`
 
-# ./viewlog [<Country-City>] [<modulename>] <servicename> [<moreargs>]
-#           ..............
+# ./viewlog [<mandants' name>] [<modulename>] <servicename> [<moreargs>]
+#           ..................
 envfile="${args[0]/'.env'/''}.env"
-if [ -f "./config/$envfile" ]; then # export the variables in the city configuration file
+if [ -f "./config/$envfile" ]; then # export the variables in the mandant configuration file
 	blueecho "performing some checks & normalizations ..."
 	source ./lib/validation
 fi
-# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
-#                          ............
+# ./viewlog <mandants' name> <modulename> <servicename> [<moreargs>]
+#                            ............
 modulename="${args[0]}"
 removeFirstElemInArgs
-if [ -n "$city" ]; then
+if [ -n "$mandant" ]; then
 	if ! [ -d "modules/$modulename" ]; then
 		redecho "Error: You specified an invalid name of a module to read log from">&2
 		echo "A list of modules available:"
@@ -28,8 +28,8 @@ if [ -n "$city" ]; then
 	fi
 fi
 
-# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
-#                                       .............
+# ./viewlog <mandants' name> <modulename> <servicename> [<moreargs>]
+#                                         .............
 servicename="${args[0]}"
 removeFirstElemInArgs
 	
@@ -37,14 +37,14 @@ removeFirstElemInArgs
 serviceprefix="${modulename}-"
 servicename=${servicename/$serviceprefix/""}
 
-if [ -n "$city" ]; then
+if [ -n "$mandant" ]; then
 	cd "modules/$modulename"
-	allServices=`sudo docker compose -p "$projectname" -f "${city}.yml" config --services`
+	allServices=`sudo $DOCKER_COMPOSE -p "$projectname" -f "${mandant}.yml" config --services`
 	cd "../../"
 else
 	serviceame="${args[0]}"
 	removeFirstElemInArgs
-	allServices=`sudo docker compose -p "$projectname" -f "docker-compose.yml" config --services`
+	allServices=`sudo $DOCKER_COMPOSE -p "$projectname" -f "docker-compose.yml" config --services`
 fi
 if [ -z `echo $allServices | grep $servicename` ]; then
 	redecho "Error: You specified an invalid name of a service in module '$modulename' to read log from">&2
@@ -53,17 +53,17 @@ if [ -z `echo $allServices | grep $servicename` ]; then
 fi
 
 
-# ./viewlog <Country-City> <modulename> <servicename> [<moreargs>]
-#                                                     ............
+# ./viewlog <mandants' name> <modulename> <servicename> [<moreargs>]
+#                                                       ............
 if [ ${#args[@]} -eq 0 ]; then
 	args+=( "--since today --follow" )
 fi
 arguments="${args[@]}"
 
 # determining full qualified container name
-containername="${projectname}_${modulename}-${servicename}"
-if [ -n "$city" ]; then
-	containername+="-${city,,}"
+containername="${projectname}.${modulename}-${servicename}"
+if [ -n "$mandant" ]; then
+	containername+="-${mandant,,}"
 fi
 namesOfAllContainers=`sudo docker container ls --all --format "{{.Names}}"`
 containername=`echo "$namesOfAllContainers" | grep $containername`

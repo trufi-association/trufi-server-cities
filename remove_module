@@ -2,6 +2,7 @@
 
 projectname=`basename "$PWD"`
 
+source ./lib/env
 source ./lib/singlenv
 source ./lib/colorful
 
@@ -10,17 +11,17 @@ source ./lib/colorful
 # e.g. removeNGINXconf intraweb tileserver
 removeNGINXconf() {
 	local modulename="$2"
-	if [ -f "./data/nginx/${1}/${city}/${modulename}.conf" ]; then
-		orangeecho "   removing nginx configuration of module '$modulename' from nginx city config for '$city'  ..."
-		rm "./data/nginx/${1}/${city}/${modulename}.conf" --verbose
+	if [ -f "./data/nginx/${1}/${mandant}/${modulename}.conf" ]; then
+		orangeecho "   removing nginx configuration of module '$modulename' from nginx mandant config for '$mandant'  ..."
+		rm "./data/nginx/${1}/${mandant}/${modulename}.conf" --verbose
 	fi
 
-	if [ -d "./data/nginx/${1}/${city}" ] && [ -z `ls "./data/nginx/${1}/${city}"` ]; then
-		orangeecho "   removing nginx configuration of city '$city' because it's empty now ..."
-		rm -R "./data/nginx/${1}/${city}" --verbose
-		if [ -f "./data/nginx/${1}/${city}.conf" ]; then
-			orangeecho "   completing removal of nginx configuration for city '$city' ..."
-			rm "./data/nginx/${1}/${city}.conf" --verbose
+	if [ -d "./data/nginx/${1}/${mandant}" ] && [ -z `ls "./data/nginx/${1}/${mandant}"` ]; then
+		orangeecho "   removing nginx configuration of mandant '$mandant' because it's empty now ..."
+		rm -R "./data/nginx/${1}/${mandant}" --verbose
+		if [ -f "./data/nginx/${1}/${mandant}.conf" ]; then
+			orangeecho "   completing removal of nginx configuration for mandant '$mandant' ..."
+			rm "./data/nginx/${1}/${mandant}.conf" --verbose
 		fi
 	fi
 }
@@ -31,18 +32,18 @@ source ./lib/validation
 removeModule() {
 	local modulename="$1"
 
-	blueecho "1. Turning down module '$modulename' of city '$city'"
-	./server "$city" down "$modulename"
+	blueecho "1. Turning down module '$modulename' of mandant '$mandant'"
+	./server "$mandant" down "$modulename"
 	
 	blueecho "2. remove interweb nginx configuration"
 	removeNGINXconf "interweb" "$modulename"
 	if [ "$intraweb" = "yes" ]; then
 		blueecho "3. remove intraweb nginx configuration"
 		cd modules/$modulename
-		allServices=`sudo docker compose -f "${city}.yml" config --services`
+		allServices=`sudo $DOCKER_COMPOSE -f "${mandant}.yml" config --services`
 		allServices=( $allServices )
 		cd ../../
-		# iterate through names of all services of that city in the module
+		# iterate through names of all services of that mandant in the module
 		for servicename in "${allServices[@]}"; do
 			removeNGINXconf "intraweb" "$servicename"
 		done
@@ -51,9 +52,9 @@ removeModule() {
 	source "lib/plugin"
 	invokeAllPluginsOf "remove_module"
 
-	blueecho "4. deactivate module '$modulename' in city '$city'"
+	blueecho "4. deactivate module '$modulename' in mandant '$mandant'"
 	
-	ymlFile="$moduleDir/$city.yml"
+	ymlFile="$moduleDir/$mandant.yml"
 	ymlFileInactive="$ymlFile.inactive"
 	
 	if [ -f "$ymlFile" ]; then
@@ -66,12 +67,12 @@ removeModule() {
 		fi
 		blueecho "   This operation did **not** remove"
 		blueecho "   - file '$ymlFile' but set it to 'inactive'"
-		blueecho "   - and also not its data directory 'data_$city'"
+		blueecho "   - and also not its data directory 'data_$mandant'"
 	else
 		greenecho "   already set to inactive. No need to do it again :)"
 	fi
 
-	greenecho "removed trufi module '$modulename' from city '$city'"
+	greenecho "removed trufi module '$modulename' from mandant '$mandant'"
 }
 
 for module in "${args[@]}"; do

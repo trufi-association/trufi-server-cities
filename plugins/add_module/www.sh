@@ -5,7 +5,7 @@ copyWWW() {
 	local modulewwwfolder="$modulefolder/www"
 	local nginxwwwfolder="data/www/"
 	local wwwenvfiles=( "index" "config" "global" ) # a file containing these strings in its name
-	local nginxmodulewwwfolder="${nginxwwwfolder}/${modulename}_${city,,}"
+	local nginxmodulewwwfolder="${nginxwwwfolder}/${modulename}_${mandant,,}"
 
 	if [ -d "$modulewwwfolder" ] && ! [ -d "$nginxmodulewwwfolder " ]; then
 		greenecho "   Found folder 'www' in module '$modulename'"
@@ -28,7 +28,7 @@ copyWWW() {
 			local wwwenvfile=`echo "$_ls" | grep "$substcandidate"`
 			if [ -z "$wwwenvfile" ]; then continue; fi
 			echo "$substcandidate"
-			(export `cat ./$cityfile | xargs`; export projectname="$projectname" 
+			(source ./$mandantFile ; export projectname="$projectname" 
 			envsubst < "$modulewwwfolder/$wwwenvfile" > "$nginxmodulewwwfolder/$wwwenvfile" )
 		done
 	else
