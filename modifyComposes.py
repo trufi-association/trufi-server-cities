@@ -50,13 +50,13 @@ for module in os.listdir(modulesPath):
 					normalize = hostVolumePart.lower().replace("./", "").replace("/", "")
 					if normalize.find("data") > -1:
 						print("      volume configuration ...")
-						dockercompose["services"][service]["volumes"][index] = hostVolumePart.replace("data", "data_$mandant") + ":" + ":".join(volumeConf)
+						dockercompose["services"][service]["volumes"][index] = hostVolumePart.replace("data_$city", "data").replace("data_$mandant", "data"). replace("data", "data_$mandant") + ":" + ":".join(volumeConf)
 			if "ports" in dockercompose["services"][service]:
 				print("      remove port binding ...")
 				del dockercompose["services"][service]["ports"]
 			
 		for service in servicesToRename:
-			newName = module + "-" + service.replace("-$city_normalize", "").replace("-$mandant_normalize") + "-$mandant_normalize"
+			newName = module + "-" + service.replace("-$city_normalize", "").replace("-$mandant_normalize", "").replace(module + "-", "") + "-$mandant_normalize"
 			dockercompose["services"][newName] = dockercompose["services"][service]
 			del dockercompose["services"][service]
 			
