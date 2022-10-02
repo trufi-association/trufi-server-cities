@@ -29,7 +29,7 @@ copyWWW() {
 			if [ -z "$wwwenvfile" ]; then continue; fi
 			echo "$substcandidate"
 			(source ./$mandantFile ; export projectname="$projectname" 
-			envsubst < "$modulewwwfolder/$wwwenvfile" > "$nginxmodulewwwfolder/$wwwenvfile" )
+			./lib/envsubst < "$modulewwwfolder/$wwwenvfile" > "$nginxmodulewwwfolder/$wwwenvfile" )
 		done
 	else
 		greenecho "   Does not exist, skipping ..."

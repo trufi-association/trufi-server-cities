@@ -1,0 +1,31 @@
+#!/bin/bash 
+IFS= read -r stdin
+
+# 1. determine variables inside $stdin (filter them out so we know which we need to substitute (if values exist for them))
+# Inspiration:
+#   see https://www.tutorialspoint.com/unix/unix-using-variables.htm
+#   see https://regex101.com/r/Ud1UcX/1
+vars=`echo "$stdin" | grep -oP '\\$\{(.+?)\}|\\$(.+?)[^a-z|^A-Z|^0-9|_]'`
+vars=( $vars )
+
+# 2. Iterate through each variable to see
+for i in "${vars[@]}"; do
+	# workaround for malformed regexp
+	i=${i%?} # remove the last char in $i as regexp contains always a char which does not belong to the name of the variable
+	res=`echo "$i" | grep "{"`
+	if [ -n "$res" ]; then
+		i+="}"
+	fi
+	
+	# 2.1. Normalize $i to a syntactically valid variable name
+	varname=${i//"\$"/""}
+	varname=${varname//"{"/""} # remove '{' as it does not belong the variable name
+	varname=${varname//"}"/""} # remove '}' as it does not belong the variable name
+	
+	# 2.1. check if the content of $i is a variable which is known to this environment
+	if [ -n "${!varname}" ]; then # the content of $varname is a variable name which is known to the environment
+		stdin=${stdin//"$i"/"${!varname}"} # so substitute it with its content
+	fi
+done
+echo "$stdin"
+
