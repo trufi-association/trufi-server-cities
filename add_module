@@ -23,7 +23,10 @@ compileCompose() {
 
 	if ! [ -f "$ymlFileInactive" ] && ! [ -f "$ymlFile" ]; then
 		orangeecho "   building & adding in directory '$moduleDir' ) ..."
-		(source ./$mandantFile ; export projectname="$projectname" ; export city_normalize="${mandant,,}" ; export mandant_normalize="${mandant,,}" 
+		(source ./$mandantFile ;
+		if [ -n "$city" ]; then
+			export mandant="$city"
+		fi ; export projectname="$projectname" ; export city_normalize="${mandant,,}" ; export mandant_normalize="${mandant,,}" ;  
 		envsubst < $moduleDir/docker-compose.yml > "$ymlFile" )
 		if ! [ -f "$ymlFile" ]; then
 			redecho "     Creating & adding operation failed! Do I have write access to '$moduleDir'?">&2
