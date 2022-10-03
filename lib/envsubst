@@ -1,5 +1,6 @@
 #!/bin/bash 
-IFS= read -r stdin
+#IFS= read -r stdin
+stdin=`cat <&0`
 
 # 1. determine variables inside $stdin (filter them out so we know which we need to substitute (if values exist for them))
 # Inspiration:
