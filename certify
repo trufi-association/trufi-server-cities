@@ -69,7 +69,7 @@ Description=renew certificate for domain '$domain'
 [Service]
 Type=simple
 WorkingDirectory=$PWD
-ExecStart=$cmd
+ExecStart=${cmd//"certonly"/"renew --force-renewal"}
 " | sudo tee "$servicefilepath"
 sudo systemctl disable "$domain.service"
 fi
