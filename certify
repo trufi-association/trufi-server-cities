@@ -8,6 +8,8 @@
 # <webroot> explained
 # <webroot> specifies the directory to save the token Let's Encrypt generates for you. That <webroot> needs to be served by a web server which you set up to react when Let's Encrypt pings your domain you want to enable HTTPS on port 80 (HTTP port) for. It looks up the token to verify that the domain really belongs to you. See https://stackoverflow.com/questions/49964315/what-should-letsencrypt-certbot-autos-webroot-path-be-for-a-non-php-non-sta for better explanation.
 
+projectname=`basename $PWD`
+
 source ./lib/colorful
 
 letsencryptDirHost="./data/letsencrypt"
@@ -52,46 +54,47 @@ if [ -z "$webroot" ]; then
 fi
 
 # modify that line as you like and as required to fit your setup
-cmd="certbot certonly --webroot --webroot-path \"$webroot\" -d $domain --config-dir \"$letsencryptDirConfig\" --work-dir \"$letsencryptDirWork\" --logs-dir \"$letsencryptDirLog\" $emailArg --rsa-key-size 4096 --agree-tos --non-interactive" #--force-renewal
-blueecho "2. executing '$cmd' ..."
-eval $cmd # execute the command stored in the variable 'cmd'
 
-blueecho "3. Setting up automatic renewal of HTTPS certificate for domain '$domain' every 60 days from now on"
+blueecho "2. Obtaining HTTPS certificate for domain '$domain' ..."
+certbot certonly --webroot --webroot-path "$webroot" -d $domain --config-dir "$letsencryptDirConfig" --work-dir "$letsencryptDirWork" --logs-dir "$letsencryptDirLog" $emailArg --rsa-key-size 4096 --agree-tos --non-interactive #--force-renewal
 
+blueecho "3. Setting up automatic renewal of HTTPS certificate for project '$projectname' every 60 days from now on"
+
+systemdfilename="$projectname-certbot-renew"
 orangeecho "   creating systemd system service file ..."
-servicefilepath="/etc/systemd/system/$domain.service"
+servicefilepath="/etc/systemd/system/$systemdfilename.service"
 if [ -f "$servicefilepath" ]; then
-	greenecho "     already exists somehow, won't overwrite!"
+	greenecho "     already exists, won't overwrite!"
 else
 	echo "[Unit]
-Description=renew certificate for domain '$domain'
+Description=renew certificate for project '$projectname'
 
 [Service]
 Type=simple
 WorkingDirectory=$PWD
-ExecStart=$cmd
+ExecStart=certbot renew --webroot --webroot-path \"$webroot\" --config-dir \"$letsencryptDirConfig\" --work-dir \"$letsencryptDirWork\" --logs-dir \"$letsencryptDirLog\"
 " | sudo tee "$servicefilepath"
-sudo systemctl disable "$domain.service"
+sudo systemctl disable "$systemdfilename.service"
 fi
 
 orangeecho "   creating systemd system timer file ..."
-timerfilepath="/etc/systemd/system/$domain.timer"
+timerfilepath="/etc/systemd/system/$systemdfilename.timer"
 if [ -f "$timerfilepath" ]; then
 	greenecho "     already exists somehow, won't overwrite!"
 else
 	echo "[Unit]
-Description=timer to renew certificate for domain '$domain'
+Description=Run certbot renew task for project '$projectname' daily
 
 [Timer]
-OnCalendar=$(date --date="60 days" +"%Y-%m-%d") 00:00:00
-OnUnitActiveSec=60d
+OnCalendar=daily
 Persistent=true
-Unit=$domain.service
-Requires=$domain.service
+Unit=$systemdfilename.service
+Requires=$systemdfilename.service
 
-[Install] 
-WantedBy=basic.target"| sudo tee "$timerfilepath"
-sudo systemctl enable "$domain.timer"
+[Install]
+WantedBy=timers.target
+" | sudo tee "$timerfilepath"
+sudo systemctl enable "$systemdfilename.timer"
 fi
 
 orangeecho "   activating systemd system timer ..."
