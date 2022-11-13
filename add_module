@@ -27,7 +27,7 @@ compileCompose() {
 		if [ -n "$city" ]; then
 			export mandant="$city"
 		fi ; export projectname="$projectname" ; export city_normalize="${mandant,,}" ; export mandant_normalize="${mandant,,}" ;  
-		./lib/envsubst < $moduleDir/docker-compose.yml > "$ymlFile" )
+		. ./lib/envsubst < $moduleDir/docker-compose.yml > "$ymlFile" )
 		if ! [ -f "$ymlFile" ]; then
 			redecho "     Creating & adding operation failed! Do I have write access to '$moduleDir'?">&2
 			exit 1
@@ -70,7 +70,7 @@ export projectname="$projectname"
 export modulename="$modulename"
 export city_normalize="${mandant,,}"
 export mandant_normalize="${mandant,,}"
-echo "$moduleNginxConfContent" | ./lib/envsubst`
+echo "$moduleNginxConfContent" | . ./lib/envsubst`
 	else
 		# if no module nginx reverse configuration exists then abbort
 		return
